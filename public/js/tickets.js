@@ -11,18 +11,15 @@ QR.makeCode("wit");
 const urlBase = "https://andenes.terminal-calama.com";
 const url = urlBase + "/TerminalCalama/PHP/Restroom/save.php";
 
-// const corsProxy = "https://cors-anywhere.herokuapp.com/";
-// const url = corsProxy + urlBase + "/TerminalCalama/PHP/Restroom/save.php";
-
 // console.log(urlBase);
 
-leerDatosServer();
+// leerDatosServer();
 
 botonesQR.forEach((btn) => {
   btn.addEventListener("click", (e) => {
     e.preventDefault();
-    // btn.disabled = true;
-    // btn.classList.add("disabled");
+    btn.disabled = true;
+    btn.classList.add("disabled");
 
     const fechaHoraAct = new Date();
     const horaStr = `${fechaHoraAct.getHours().toString().padStart(2, '0')}:${fechaHoraAct.getMinutes().toString().padStart(2, '0')}:${fechaHoraAct.getSeconds().toString().padStart(2, '0')}`;
@@ -45,7 +42,7 @@ botonesQR.forEach((btn) => {
 
     callApi(datos).then((res) => {
       QR.makeCode(numeroT);
-      leerDatosServer();
+      // leerDatosServer();
       btn.disabled = false;
       btn.classList.remove("disabled");
       addUser(numeroT);
@@ -99,36 +96,35 @@ async function callApi(datos) {
 // Ejemplo de uso para un token de 6 caracteres
 // const miToken = generarTokenAlfanumerico(6);
 
-function leerDatosServer() {
-  const endpointURL = urlBase + "/TerminalCalama/PHP/Restroom/load.php";
-//   const endpointURL = corsProxy + urlBase + "/TerminalCalama/PHP/Restroom/load.php";
+// function leerDatosServer() {
+//   const endpointURL = urlBase + "/TerminalCalama/PHP/Restroom/load.php";
 
 
-  fetch(endpointURL)
-    .then((response) => response.json())
-    .then((data) => {
-      // Construir filas de la tabla
-      const filasHTML = data
-        .map(
-          (item) => `
-                <tr>
-                    <td>${item.idrestroom}</td>
-                    <td>${item.Codigo}</td>
-                    <td>${item.tipo}</td>
-                    <td>${item.date}</td>
-                    <td>${item.time}</td>
-                </tr>
-            `
-        )
-        .join("");
+//   fetch(endpointURL)
+//     .then((response) => response.json())
+//     .then((data) => {
+//       // Construir filas de la tabla
+//       const filasHTML = data
+//         .map(
+//           (item) => `
+//                 <tr>
+//                     <td>${item.idrestroom}</td>
+//                     <td>${item.Codigo}</td>
+//                     <td>${item.tipo}</td>
+//                     <td>${item.date}</td>
+//                     <td>${item.time}</td>
+//                 </tr>
+//             `
+//         )
+//         .join("");
 
-      // Actualizar el contenido de la tabla
-      document.getElementById("tabla-body").innerHTML = filasHTML;
-    })
-    .catch((error) => {
-      console.error("Error al obtener datos:", error);
-    });
-}
+//       // Actualizar el contenido de la tabla
+//       // document.getElementById("tabla-body").innerHTML = filasHTML;
+//     })
+//     .catch((error) => {
+//       console.error("Error al obtener datos:", error);
+//     });
+// }
 
 function printQR() {
   const ventanaImpr = window.open("", "_blank");

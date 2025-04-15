@@ -86,7 +86,15 @@
             </div>
           </div>
         </div>
-        <button class="sm-button" onclick="openResumen()">
+        <button id="searchTicketBtn" class="sm-button search-btn">
+          <img
+            src="./images/LUPA boton.svg"
+            alt="Search"
+            style="height: 20px"
+            fill="white"
+          />
+        </button>
+        <button id="resumen-button" class="sm-button">
           VERIFICAR CÓDIGO
         </button>
         <div id="resumen-overlay">
@@ -154,9 +162,10 @@
                 </div>
               </div>
             </div>
-            <div class="qr-code">
+            <div id="contenedorTicketQR" class="img-qr col"></div>
+            <!-- <div class="qr-code">
               <img src="./images/QR@2x.png" alt="QR Code" class="qr-image" />
-            </div>
+            </div> -->
             <div class="button-container">
               <button id="reimprimirBtn" class="sm-button">
                 REIMPRIMIR
@@ -185,7 +194,6 @@
         <div class="row">
           <h3 class="text-center pb-2">ÚLTIMO TICKET y BOLETA IMPRESO</h3>
           <div id="contenedorQR" class="img-qr col">
-            <!-- <img id="contenedorQR" class="img-qr" src="images/QR@2x.png" alt="Imagen QR" /> -->
           </div>
           <div class="ticket-text col">
             <p>CÓDIGO TICKET</p>

@@ -1,127 +1,129 @@
 document.addEventListener("DOMContentLoaded", function () {
-  // const ticketsData = [];
+  function openResumen() {
+    const modal = document.getElementById("resumen-overlay");
+    modal.style.display = "flex";
+    cargarTabla();
+  }
 
-  // // Crear data de tablas, implementar lógica de generar tickets - máximo 8 últimos
-  // for (let i = 0; i < 8; i++) {
-  //   ticketsData.push({
-  //     tipo: "Baño",
-  //     codigo: "777777777777",
-  //     fecha: "11-11-25",
-  //     hora: "13:01:00",
-  //   });
-  // }
+  function cargarTabla() {
+    const endpointURL = urlBase + "/TerminalCalama/PHP/Restroom/load.php";
+    const tableBody = document.getElementById("sales-table-body");
 
-  const ticketsData = [
-    {
-      tipo: "Baño",
-      codigo: "123456789",
-      fecha: "11-11-25",
-      hora: "13:01:00",
-      qrCode: "images/QR@2x.png",
-    },
-    {
-      tipo: "Ducha",
-      codigo: "987654321",
-      fecha: "12-08-25",
-      hora: "11:01:00",
-      qrCode: "images/QR@2x.png",
-    },
-  ];
+    tableBody.innerHTML = "";
 
-  const tableBody = document.getElementById("sales-table-body");
-  ticketsData.forEach((sale) => {
-    const row = document.createElement("tr");
+    fetch(endpointURL)
+      .then((response) => response.json())
+      .then((data) => {
+        const ordenado = data.sort((a, b) => {
+          const fechaA = new Date(`${a.date} ${a.time}`);
+          const fechaB = new Date(`${b.date} ${b.time}`);
+          return fechaB - fechaA;
+        });
 
-    const tipoCell = document.createElement("td");
-    tipoCell.textContent = sale.tipo;
-    row.appendChild(tipoCell);
+        const ultimos = ordenado.slice(0, 8);
 
-    const codigoCell = document.createElement("td");
-    codigoCell.textContent = sale.codigo;
-    row.appendChild(codigoCell);
+        ultimos.forEach((item) => {
+          const row = document.createElement("tr");
 
-    const fechaCell = document.createElement("td");
-    fechaCell.textContent = sale.fecha;
-    row.appendChild(fechaCell);
+          const tipoCell = document.createElement("td");
+          tipoCell.textContent = item.tipo;
+          row.appendChild(tipoCell);
 
-    const horaCell = document.createElement("td");
-    horaCell.textContent = sale.hora;
-    row.appendChild(horaCell);
+          const codigoCell = document.createElement("td");
+          codigoCell.textContent = item.Codigo;
+          row.appendChild(codigoCell);
 
-    const printCell = document.createElement("td");
-    printCell.style.textAlign = "center";
+          const fechaCell = document.createElement("td");
+          fechaCell.textContent = item.date;
+          row.appendChild(fechaCell);
 
-    const printButton = document.createElement("button");
-    printButton.className = "print-button";
-    printButton.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="35" height="35" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="6 9 6 2 18 2 18 9"></polyline>
-        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-        <rect x="6" y="14" width="12" height="8"></rect>
-      </svg>
-    `;
+          const horaCell = document.createElement("td");
+          horaCell.textContent = item.time;
+          row.appendChild(horaCell);
 
-    // modal imprimir ticket
-    printButton.addEventListener("click", function () {
-      const overlay = document.getElementById("ticket-print-overlay");
-      const modal = document.getElementById("ticket-print-modal");
-      const modalResume = document.getElementById("resumen-overlay");
-      modalResume.style.display = "none";
+          const printCell = document.createElement("td");
+          printCell.style.textAlign = "center";
 
-      overlay.style.display = "flex";
+          const printButton = document.createElement("button");
+          printButton.className = "print-button";
+          printButton.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="35" height="35" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 6 2 18 2 18 9"></polyline>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+            <rect x="6" y="14" width="12" height="8"></rect>
+          </svg>
+        `;
 
-      const infoItems = modal.querySelectorAll(".info-item");
+          printButton.addEventListener("click", function () {
+            const overlay = document.getElementById("ticket-print-overlay");
+            const modal = document.getElementById("ticket-print-modal");
+            const modalResume = document.getElementById("resumen-overlay");
+            modalResume.style.display = "none";
+            overlay.style.display = "flex";
 
-      infoItems.forEach((item) => {
-        const label = item.querySelector(".info-label").textContent.trim();
-        const value = item.querySelector(".info-value");
+            const infoItems = modal.querySelectorAll(".info-item");
+            infoItems.forEach((infoItem) => {
+              const label = infoItem
+                .querySelector(".info-label")
+                .textContent.trim();
+              const value = infoItem.querySelector(".info-value");
 
-        if (label === "TIPO") value.textContent = sale.tipo;
-        if (label === "CÓDIGO") value.textContent = sale.codigo;
-        if (label === "FECHA") value.textContent = sale.fecha;
-        if (label === "HORA") value.textContent = sale.hora;
+              if (label === "TIPO") value.textContent = item.tipo;
+              if (label === "CÓDIGO") value.textContent = item.Codigo;
+              if (label === "FECHA") value.textContent = item.date;
+              if (label === "HORA") value.textContent = item.time;
+            });
+
+            // const QR = new QRCode(contenedorQR);
+            // QR.makeCode("wit");
+
+            // const contenedorTicketQR =
+            //   document.getElementById("contenedorTicketQR");
+            // QR.makeCode(numeroT);
+            // const qrImage = modal.querySelector(".qr-image");
+            // qrImage.src = "images/QR@2x.png";
+          });
+
+          printCell.appendChild(printButton);
+          row.appendChild(printCell);
+
+          tableBody.appendChild(row);
+        });
+      })
+      .catch((error) => {
+        console.error("Error al obtener datos:", error);
       });
-      const qrImage = modal.querySelector(".qr-image");
-      qrImage.src = sale.qrCode || "images/QR@2x.png";
+  }
+
+  document
+    .getElementById("resumen-overlay")
+    .addEventListener("click", function (e) {
+      if (e.target.id === "resumen-overlay") {
+        closeResumen();
+      }
     });
 
-    printCell.appendChild(printButton);
-    row.appendChild(printCell);
-    tableBody.appendChild(row);
-  });
-});
+  document
+    .getElementById("resumen-button")
+    .addEventListener("click", openResumen);
 
-// abrir y cerrar modal de resumen de tickets
-function openResumen() {
-  const modal = document.getElementById("resumen-overlay");
-  modal.style.display = "flex";
-}
+  document
+    .getElementById("ticket-print-overlay")
+    .addEventListener("click", function (e) {
+      if (e.target.id === "ticket-print-overlay") {
+        closeTicketModal();
+      }
+    });
+});
 
 function closeResumen() {
   const modal = document.getElementById("resumen-overlay");
   modal.style.display = "none";
 }
 
-document
-  .getElementById("resumen-overlay")
-  .addEventListener("click", function (e) {
-    if (e.target.id === "resumen-overlay") {
-      closeResumen();
-    }
-  });
-
-// cerrar modal de imprimir ticket
 function closeTicketModal() {
   document.getElementById("ticket-print-overlay").style.display = "none";
 }
-
-document
-  .getElementById("ticket-print-overlay")
-  .addEventListener("click", function (e) {
-    if (e.target.id === "ticket-print-overlay") {
-      closeTicketModal();
-    }
-  });
 
 // modal de ticket
 document.addEventListener("DOMContentLoaded", function () {
@@ -129,13 +131,39 @@ document.addEventListener("DOMContentLoaded", function () {
   const inputField = document.getElementById("ticketInput");
   const closeBtn = document.querySelector(".close-button");
   const reimprimirBtn = document.getElementById("reimprimirBtn");
+  const searchBtn = document.getElementById("searchTicketBtn");
+  const url = urlBase + "/TerminalCalama/PHP/Restroom/load.php";
 
-  inputField.addEventListener("click", function () {
-    modal.style.display = "flex";
-  });
+  const tipoEl = modal.querySelector(".info-item:nth-child(1) .info-value");
+  const codigoEl = modal.querySelector(".info-item:nth-child(2) .info-value");
+  const fechaEl = modal.querySelector(".info-item:nth-child(3) .info-value");
+  const horaEl = modal.querySelector(".info-item:nth-child(4) .info-value");
 
-  inputField.addEventListener("focus", function () {
-    modal.style.display = "flex";
+  searchBtn.addEventListener("click", async function () {
+    const codigo = inputField.value.trim();
+    if (!codigo) return;
+
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+
+      const ticket = data.find((t) => t.Codigo === codigo);
+      console.log(ticket);
+
+      if (ticket) {
+        tipoEl.textContent = ticket.tipo;
+        codigoEl.textContent = ticket.Codigo;
+        fechaEl.textContent = ticket.date;
+        horaEl.textContent = ticket.time;
+        console.log("Mostrando modal");
+        modal.style.display = "flex";
+      } else {
+        alert("Código no encontrado");
+        modal.style.display = "none";
+      }
+    } catch (err) {
+      console.error("Error al buscar ticket:", err);
+    }
   });
 
   closeBtn.addEventListener("click", function () {
@@ -151,7 +179,7 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   reimprimirBtn.addEventListener("click", function () {
-    // Agregar la lógica para reimprimir el ticket
+    // Tu lógica de reimpresión
   });
 });
 
