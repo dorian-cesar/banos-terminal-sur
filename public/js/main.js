@@ -1,8 +1,13 @@
 document.addEventListener("DOMContentLoaded", function () {
   function openResumen() {
     const modal = document.getElementById("resumen-overlay");
-    modal.style.display = "flex";
-    cargarTabla();
+    const spinner = document.getElementById("spinner");
+
+    spinner.style.display = "flex";
+    cargarTabla().then(() => {
+      spinner.style.display = "none";
+      modal.style.display = "flex";
+    });
   }
 
   function cargarTabla() {
@@ -11,7 +16,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     tableBody.innerHTML = "";
 
-    fetch(endpointURL)
+    return fetch(endpointURL)
       .then((response) => response.json())
       .then((data) => {
         const ordenado = data.sort((a, b) => {
@@ -47,13 +52,12 @@ document.addEventListener("DOMContentLoaded", function () {
           const printButton = document.createElement("button");
           printButton.className = "print-button";
           printButton.innerHTML = `
-          <svg xmlns="http://www.w3.org/2000/svg" width="35" height="35" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 6 2 18 2 18 9"></polyline>
-            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-            <rect x="6" y="14" width="12" height="8"></rect>
-          </svg>
-        `;
-
+            <svg xmlns="http://www.w3.org/2000/svg" width="35" height="35" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 6 2 18 2 18 9"></polyline>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+              <rect x="6" y="14" width="12" height="8"></rect>
+            </svg>
+          `;
           printButton.addEventListener("click", function () {
             const overlay = document.getElementById("ticket-print-overlay");
             const modal = document.getElementById("ticket-print-modal");
@@ -75,13 +79,11 @@ document.addEventListener("DOMContentLoaded", function () {
             });
 
             const numeroT = item.Codigo;
-
             const contenedorTicketQR1 = document.getElementById(
               "contenedorTicketQR1"
             );
             contenedorTicketQR1.innerHTML = "";
-
-            const qr = new QRCode(contenedorTicketQR1, {
+            new QRCode(contenedorTicketQR1, {
               text: numeroT,
             });
           });
@@ -152,7 +154,7 @@ document.addEventListener("DOMContentLoaded", function () {
         customClass: {
           title: "swal-font",
           htmlContainer: "swal-font",
-          popup: 'alert-card',
+          popup: "alert-card",
           confirmButton: "my-confirm-btn",
         },
         buttonsStyling: false,
@@ -194,7 +196,7 @@ document.addEventListener("DOMContentLoaded", function () {
           customClass: {
             title: "swal-font",
             htmlContainer: "swal-font",
-            popup: 'alert-card',
+            popup: "alert-card",
             confirmButton: "my-confirm-btn",
           },
           buttonsStyling: false,
@@ -210,7 +212,7 @@ document.addEventListener("DOMContentLoaded", function () {
         customClass: {
           title: "swal-font",
           htmlContainer: "swal-font",
-          popup: 'alert-card',
+          popup: "alert-card",
           confirmButton: "my-confirm-btn",
         },
         buttonsStyling: false,
