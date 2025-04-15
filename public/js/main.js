@@ -143,6 +143,22 @@ document.addEventListener("DOMContentLoaded", function () {
 
   searchBtn.addEventListener("click", async function () {
     const codigo = inputField.value.trim();
+
+    if (!/^\d{10}$/.test(codigo)) {
+      Swal.fire({
+        icon: "warning",
+        title: "Código inválido",
+        text: "El código debe contener exactamente 10 números.",
+        customClass: {
+          title: "swal-font",
+          htmlContainer: "swal-font",
+          confirmButton: "my-confirm-btn",
+        },
+        buttonsStyling: false,
+      });
+      return;
+    }
+
     if (!codigo) return;
 
     try {
@@ -151,27 +167,51 @@ document.addEventListener("DOMContentLoaded", function () {
 
       const ticket = data.find((t) => t.Codigo === codigo);
 
-      const numeroT = ticket.Codigo;
-
-      const contenedorTicketQR2 = document.getElementById("contenedorTicketQR2");
-      contenedorTicketQR2.innerHTML = "";
-
-      const qr = new QRCode(contenedorTicketQR2, {
-        text: numeroT,
-      });
-
       if (ticket) {
-        tipoEl.textContent = ticket.tipo;
-        codigoEl.textContent = ticket.Codigo;
-        fechaEl.textContent = ticket.date;
-        horaEl.textContent = ticket.time;
+        tipoEl.textContent = ticket.tipo || "-";
+        codigoEl.textContent = ticket.Codigo || "-";
+        fechaEl.textContent = ticket.date || "-";
+        horaEl.textContent = ticket.time || "-";
+
+        const numeroT = ticket.Codigo;
+
+        const contenedorTicketQR2 = document.getElementById(
+          "contenedorTicketQR2"
+        );
+        contenedorTicketQR2.innerHTML = "";
+
+        const qr = new QRCode(contenedorTicketQR2, {
+          text: numeroT,
+        });
+
         modal.style.display = "flex";
       } else {
-        alert("Código no encontrado");
+        Swal.fire({
+          icon: "error",
+          title: "No encontrado",
+          text: "No se encontró ningún ticket con ese código.",
+          customClass: {
+            title: "swal-font",
+            htmlContainer: "swal-font",
+            confirmButton: "my-confirm-btn",
+          },
+          buttonsStyling: false,
+        });
         modal.style.display = "none";
       }
     } catch (err) {
       console.error("Error al buscar ticket:", err);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Ocurrió un error al buscar el ticket. Intenta nuevamente.",
+        customClass: {
+          title: "swal-font",
+          htmlContainer: "swal-font",
+          confirmButton: "my-confirm-btn",
+        },
+        buttonsStyling: false,
+      });
     }
   });
 
