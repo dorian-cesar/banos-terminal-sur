@@ -175,13 +175,20 @@ h3 {
   color: #707070;
 }
 
-#img-qr {
-  position: absolute;
-  bottom: 55px;
-  left: 170px;
-  width: 200px;
-  height: 200px;
+.img-qr {
+  position: relative;
+  bottom: 30px;
+  /* left: 170px; */
+  width: auto;
+  height: auto;
   transition: transform 0.3s ease-in-out;
+}
+
+.img-qr img {
+  width: 180px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
 }
 
 .img-close-btn {

@@ -14,14 +14,14 @@ document.addEventListener("DOMContentLoaded", function () {
   const ticketsData = [
     {
       tipo: "Baño",
-      codigo: "8888888888888",
+      codigo: "123456789",
       fecha: "11-11-25",
       hora: "13:01:00",
       qrCode: "images/QR@2x.png",
     },
     {
       tipo: "Ducha",
-      codigo: "7777777777777",
+      codigo: "987654321",
       fecha: "12-08-25",
       hora: "11:01:00",
       qrCode: "images/QR@2x.png",
@@ -160,8 +160,8 @@ let rotation = 0;
 
 function rotateQR() {
   rotation += 90;
-  document.getElementById("img-qr").style.transform = `rotate(${rotation}deg)`;
+  document.querySelector(".img-qr").style.transform = `rotate(${rotation}deg)`;
 }
 
-document.getElementById("btn-genera-baño").addEventListener("click", rotateQR);
-document.getElementById("btn-genera-ducha").addEventListener("click", rotateQR);
+document.querySelector(".btn-genera-baño").addEventListener("click", rotateQR);
+document.querySelector(".btn-genera-ducha").addEventListener("click", rotateQR);
