@@ -74,14 +74,16 @@ document.addEventListener("DOMContentLoaded", function () {
               if (label === "HORA") value.textContent = item.time;
             });
 
-            // const QR = new QRCode(contenedorQR);
-            // QR.makeCode("wit");
+            const numeroT = item.Codigo;
 
-            // const contenedorTicketQR =
-            //   document.getElementById("contenedorTicketQR");
-            // QR.makeCode(numeroT);
-            // const qrImage = modal.querySelector(".qr-image");
-            // qrImage.src = "images/QR@2x.png";
+            const contenedorTicketQR1 = document.getElementById(
+              "contenedorTicketQR1"
+            );
+            contenedorTicketQR1.innerHTML = "";
+
+            const qr = new QRCode(contenedorTicketQR1, {
+              text: numeroT,
+            });
           });
 
           printCell.appendChild(printButton);
@@ -148,14 +150,21 @@ document.addEventListener("DOMContentLoaded", function () {
       const data = await res.json();
 
       const ticket = data.find((t) => t.Codigo === codigo);
-      console.log(ticket);
+
+      const numeroT = ticket.Codigo;
+
+      const contenedorTicketQR2 = document.getElementById("contenedorTicketQR2");
+      contenedorTicketQR2.innerHTML = "";
+
+      const qr = new QRCode(contenedorTicketQR2, {
+        text: numeroT,
+      });
 
       if (ticket) {
         tipoEl.textContent = ticket.tipo;
         codigoEl.textContent = ticket.Codigo;
         fechaEl.textContent = ticket.date;
         horaEl.textContent = ticket.time;
-        console.log("Mostrando modal");
         modal.style.display = "flex";
       } else {
         alert("Código no encontrado");

@@ -204,6 +204,14 @@ h3 {
   margin: 0 auto;
 }
 
+.img-qr-tk img {
+  width: 180px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  margin-bottom: 25px;
+}
+
 .img-close-btn {
   position: absolute;
   bottom: 4px;
@@ -354,7 +362,7 @@ td {
   text-align: center;
   flex: 1;
   min-width: 120px;
-  margin-bottom: 10px;
+  margin-bottom: 20px;
 }
 
 .info-label {
