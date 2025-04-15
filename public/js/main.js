@@ -152,6 +152,7 @@ document.addEventListener("DOMContentLoaded", function () {
         customClass: {
           title: "swal-font",
           htmlContainer: "swal-font",
+          popup: 'alert-card',
           confirmButton: "my-confirm-btn",
         },
         buttonsStyling: false,
@@ -193,6 +194,7 @@ document.addEventListener("DOMContentLoaded", function () {
           customClass: {
             title: "swal-font",
             htmlContainer: "swal-font",
+            popup: 'alert-card',
             confirmButton: "my-confirm-btn",
           },
           buttonsStyling: false,
@@ -208,6 +210,7 @@ document.addEventListener("DOMContentLoaded", function () {
         customClass: {
           title: "swal-font",
           htmlContainer: "swal-font",
+          popup: 'alert-card',
           confirmButton: "my-confirm-btn",
         },
         buttonsStyling: false,

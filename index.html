@@ -8,7 +8,10 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./css/style.css" />
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"
+    ></script>
     <script defer src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script defer src="./js/main.js"></script>
     <script defer src="./js/tickets.js"></script>
@@ -42,6 +45,8 @@
               id="ticketInput"
               class="codigo-input"
               placeholder="Código"
+              autocomplete="off"
+              autocorrect="off"
             />
           </div>
           <div id="ticket-overlay">
@@ -93,9 +98,7 @@
             fill="white"
           />
         </button>
-        <button id="resumen-button" class="sm-button">
-          VERIFICAR CÓDIGO
-        </button>
+        <button id="resumen-button" class="sm-button">VERIFICAR CÓDIGO</button>
         <div id="resumen-overlay">
           <div id="resumen-modal">
             <div class="sales-summary">
@@ -163,9 +166,7 @@
             </div>
             <div id="contenedorTicketQR1" class="img-qr-tk col"></div>
             <div class="button-container">
-              <button id="reimprimirBtn" class="sm-button">
-                REIMPRIMIR
-              </button>
+              <button id="reimprimirBtn" class="sm-button">REIMPRIMIR</button>
             </div>
           </div>
         </div>
@@ -189,8 +190,7 @@
       <div id="ticket-container" class="container">
         <div class="row">
           <h3 class="text-center pb-2">ÚLTIMO TICKET y BOLETA IMPRESO</h3>
-          <div id="contenedorQR" class="img-qr col">
-          </div>
+          <div id="contenedorQR" class="img-qr col"></div>
           <div class="ticket-text col">
             <p>CÓDIGO TICKET</p>
             <p>TIPO</p>
@@ -212,7 +212,6 @@
           </div>
         </div>
       </div>
-
     </main>
   </body>
 </html>
