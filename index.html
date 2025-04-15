@@ -10,7 +10,6 @@
     <link rel="stylesheet" href="css/style.css" />
     <title>Pullman Caja Baños</title>
   </head>
-
   <body>
     <header>
       <nav>
@@ -23,6 +22,7 @@
         <img src="images/wit@2x.png" alt="Logo Wit" class="logo-wit" />
       </nav>
     </header>
+
     <main>
       <div id="codigo-container">
         <div class="codigo-input-container">
@@ -44,7 +44,11 @@
             <div id="ticket-modal">
               <div class="sales-summary">
                 <button class="close-button" onclick="closeTicketModal()">
-                  <img class="img-close-btn" src="images/SALIR@2x.png" alt="Salir" />
+                  <img
+                    class="img-close-btn"
+                    src="images/SALIR@2x.png"
+                    alt="Cerrar"
+                  />
                 </button>
                 <h1 class="title">TICKET</h1>
                 <div class="table-container">
@@ -86,7 +90,11 @@
           <div id="resumen-modal">
             <div class="sales-summary">
               <button class="close-button" onclick="closeResumen()">
-                <img class="img-close-btn" src="images/SALIR@2x.png" alt="Salir">
+                <img
+                  class="img-close-btn"
+                  src="images/SALIR@2x.png"
+                  alt="Cerrar"
+                />
               </button>
               <h1 class="title">RESUMEN DE VENTA</h1>
               <div class="table-container">
@@ -111,6 +119,50 @@
         </button>
       </div>
 
+      <!-- modal imprimir ticket -->
+      <div id="ticket-print-overlay">
+        <div id="ticket-print-modal">
+          <div class="sales-summary">
+            <button class="close-button" onclick="closeTicketModal()">
+              <img
+                class="img-close-btn"
+                src="images/SALIR@2x.png"
+                alt="Cerrar"
+              />
+            </button>
+            <h1 class="title">TICKET</h1>
+            <div class="table-container">
+              <div class="info-row">
+                <div class="info-item">
+                  <div class="info-label">TIPO</div>
+                  <div class="info-value"></div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">CÓDIGO</div>
+                  <div class="info-value"></div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">FECHA</div>
+                  <div class="info-value"></div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">HORA</div>
+                  <div class="info-value"></div>
+                </div>
+              </div>
+            </div>
+            <div class="qr-code">
+              <img src="images/QR@2x.png" alt="QR Code" class="qr-image" />
+            </div>
+            <div class="button-container">
+              <button id="reimprimirBtn" class="sm-button">
+                REIMPRIMIR
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <h2 class="text-center">
         Elija la opción según servicio, para imprimir Ticket.
       </h2>
@@ -130,7 +182,7 @@
         <div class="row">
           <h3 class="text-center pb-2">ÚLTIMO TICKET y BOLETA IMPRESO</h3>
           <div class="col">
-            <img id="img-qr" src="images/QR@2x.png" alt="Imagen QR"/>
+            <img id="img-qr" src="images/QR@2x.png" alt="Imagen QR" />
           </div>
           <div class="ticket-text col">
             <p>CÓDIGO TICKET</p>
