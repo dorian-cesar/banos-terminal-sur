@@ -215,9 +215,9 @@ document.addEventListener("DOMContentLoaded", function () {
       estadoEl.textContent = estadoTicket;
 
       if (estadoTicket === "BOLETO SIN USAR") {
-        estadoEl.style.color = "red";
-      } else {
         estadoEl.style.color = "green";
+      } else {
+        estadoEl.style.color = "red";
       }
 
       if (ticket) {
