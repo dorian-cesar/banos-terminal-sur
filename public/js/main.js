@@ -88,10 +88,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
               if (label === "ESTADO") {
                 value.textContent = estadoTicket;
-                if (estadoTicket === "BOLETO SIN USAR") {
-                  value.style.color = "green";
-                } else {
+                if (estadoTicket === "EL BOLETO HA SIDO OCUPADO") {
                   value.style.color = "red";
+                } else {
+                  value.style.color = "green";
                 }
               }
 
