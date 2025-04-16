@@ -67,7 +67,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
             showSpinner();
 
-            const urlEstado = `${urlBase}/TerminalCalama/PHP/Restroom/estadoBoleto.php?userPin=${item.Codigo}`;
+            const userPin = item.Codigo.slice(0, 6);
+
+            const urlEstado = `${urlBase}/TerminalCalama/PHP/Restroom/estadoBoleto.php?userPin=${userPin}`;
 
             const resEstado = await fetch(urlEstado);
             if (!resEstado.ok) {
@@ -87,9 +89,9 @@ document.addEventListener("DOMContentLoaded", function () {
               if (label === "ESTADO") {
                 value.textContent = estadoTicket;
                 if (estadoTicket === "BOLETO SIN USAR") {
-                  value.style.color = "red";
-                } else {
                   value.style.color = "green";
+                } else {
+                  value.style.color = "red";
                 }
               }
 
@@ -194,13 +196,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
     showSpinner();
 
+    const userPin = codigo.slice(0, 6);
+
     const url = `${urlBase}/TerminalCalama/PHP/Restroom/getCodigo.php?codigo=${codigo}`;
-    const urlEstado = `${urlBase}/TerminalCalama/PHP/Restroom/estadoBoleto.php?userPin=${codigo}`;
+    const urlEstado = `${urlBase}/TerminalCalama/PHP/Restroom/estadoBoleto.php?userPin=${userPin}`;
 
     try {
       const res = await fetch(url);
       const data = await res.json();
       const ticket = data.find((t) => t.Codigo === codigo);
+      console.log(ticket);
 
       const resEstado = await fetch(urlEstado);
       const dataEstado = await resEstado.json();
