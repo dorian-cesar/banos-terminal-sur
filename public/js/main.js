@@ -88,6 +88,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
               if (label === "ESTADO") {
                 value.textContent = estadoTicket;
+                value.style.fontWeight = "bold";
                 if (estadoTicket === "EL BOLETO HA SIDO OCUPADO") {
                   value.style.color = "red";
                 } else {
@@ -213,6 +214,7 @@ document.addEventListener("DOMContentLoaded", function () {
       estadoTicket = estadoTicket.toUpperCase().replace(/\.$/, "");
 
       estadoEl.textContent = estadoTicket;
+      estadoEl.style.fontWeight = "bold";
 
       if (estadoTicket === "BOLETO SIN USAR") {
         estadoEl.style.color = "green";
