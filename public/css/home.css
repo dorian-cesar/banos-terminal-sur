@@ -34,7 +34,8 @@ nav {
 
 nav h1 {
   font: normal normal bold 36px/42px Arial;
-  color: #ff5600
+  color: #ff5600;
+  margin: 0;
 }
 
 .logo-pullman {

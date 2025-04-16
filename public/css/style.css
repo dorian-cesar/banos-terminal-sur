@@ -36,6 +36,7 @@ nav {
 
 nav h1 {
   font: normal normal bold 36px/42px Arial;
+  margin: 0;
 }
 
 h2 {
@@ -237,7 +238,7 @@ h3 {
 #resumen-modal {
   position: absolute;
   top: 57px;
-  left: 76px;
+  left: 85px;
   width: 1196px;
   height: 655px;
   display: flex;
@@ -340,8 +341,8 @@ td {
 #ticket-modal,
 #ticket-print-modal {
   position: fixed;
-  top: 114px;
-  left: 369px;
+  top: 135px;
+  left: 405px;
   width: 607px;
   height: 416px;
   display: flex;
