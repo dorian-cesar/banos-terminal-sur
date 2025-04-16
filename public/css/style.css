@@ -304,6 +304,8 @@ td {
 }
 
 .print-button {
+  width: 100%;
+  height: 100%;
   background: none;
   border: none;
   color: #ff6600;
