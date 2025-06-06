@@ -16,7 +16,7 @@ const url = urlBase + "/TerminalCalama/PHP/Restroom/save.php";
 // leerDatosServer();
 
 botonesQR.forEach((btn) => {
-  btn.addEventListener("click", (e) => {
+  btn.addEventListener("click", async (e) => {
     e.preventDefault();
     btn.disabled = true;
     btn.classList.add("disabled");
@@ -40,21 +40,65 @@ botonesQR.forEach((btn) => {
       tipo: tipoStr,
     };
 
-    callApi(datos).then((res) => {
-      QR.makeCode(numeroT);
-      // leerDatosServer();
-      btn.disabled = false;
-      btn.classList.remove("disabled");
-      addUser(numeroT);
+    await callApi(datos);
 
-      setTimeout(() => {
-        let name = numeroT.substring(0, 6);
-        console.log(name);
-        addUserAccessLevel(name);
-      }, 1000);
+    // Esperamos brevemente a que el QR se actualice en el DOM
+    QR.makeCode(numeroT);
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Capturamos el QR como base64
+    const qrCanvas = contenedorQR.querySelector("canvas");
+    let qrBase64 = "";
+    if (qrCanvas) {
+      qrBase64 = qrCanvas.toDataURL("image/png").replace(/^data:image\/png;base64,/, "");
+    }
+
+    // Enviamos a la API de impresión
+    const payload = {
+      Codigo: numeroT,
+      hora: horaStr,
+      fecha: fechaStr,
+      tipo: tipoStr,
+      qrBase64: qrBase64
+    };
+
+    const estado = document.createElement("p");
+    contenedorQR.appendChild(estado);
+
+    fetch('https://localhost:3000/api/print', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    .then(async res => {
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const data = await res.json();
+        if (!data.success) {
+          throw new Error(data.error || 'Error inesperado');
+        }
+        // No mostrar mensaje si éxito
+      } else {
+        const text = await res.text();
+        throw new Error(`Respuesta no JSON: ${text}`);
+      }
+    })
+    .catch(err => {
+      estado.textContent = `❌ Error al imprimir: ${err.message}`;
     });
+
+    // Resto de lógica
+    btn.disabled = false;
+    btn.classList.remove("disabled");
+    addUser(numeroT);
+
+    setTimeout(() => {
+      let name = numeroT.substring(0, 6);
+      addUserAccessLevel(name);
+    }, 1000);
   });
 });
+
 
 function generarTokenNumerico() {
   let token = (Math.floor(Math.random() * 9) + 1).toString();
