@@ -76,8 +76,7 @@ botonesQR.forEach((btn) => {
         const data = await res.json();
         if (!data.success) {
           throw new Error(data.error || 'Error inesperado');
-        }
-        // No mostrar mensaje si éxito
+        }        
       } else {
         const text = await res.text();
         throw new Error(`Respuesta no JSON: ${text}`);
