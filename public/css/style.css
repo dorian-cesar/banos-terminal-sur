@@ -420,3 +420,6 @@ td {
 .swal-font {
   font-family: Arial, sans-serif;
 }
+.swal2-container {
+  z-index: 10000 !important;
+}

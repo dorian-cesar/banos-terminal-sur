@@ -114,9 +114,88 @@ document.addEventListener("DOMContentLoaded", function () {
             hideSpinner();
             overlay.style.display = "flex";
 
-            reimprimirBtn1.addEventListener("click", function () {
-              // lógica de reimpresión
-            });
+            reimprimirBtn1.addEventListener("click", async function () {
+              if (estadoTicket !== "BOLETO SIN USAR") {
+                Swal.fire({
+                  icon: "warning",
+                  title: "No permitido",
+                  text: "Solo se pueden reimprimir boletos sin usar.",
+                  customClass: {
+                    title: "swal-font",
+                    htmlContainer: "swal-font",
+                    popup: "alert-card",
+                    confirmButton: "my-confirm-btn",
+                  },
+                  buttonsStyling: false,
+                });
+                return;
+              }
+
+            showSpinner();
+
+            try {
+              const qrCanvas = contenedorTicketQR1.querySelector("canvas");
+              let qrBase64 = "";
+              if (qrCanvas) {
+                qrBase64 = qrCanvas.toDataURL("image/png").replace(/^data:image\/png;base64,/, "");
+              }
+
+              const payload = {
+                Codigo: item.Codigo,
+                fecha: item.date,
+                hora: item.time,
+                tipo: item.tipo,
+                qrBase64
+              };
+
+              const res = await fetch('https://localhost:3000/api/print', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+              });
+
+              const contentType = res.headers.get('content-type');
+              if (contentType && contentType.includes('application/json')) {
+                const data = await res.json();
+                if (!data.success) {
+                  throw new Error(data.error || 'Error inesperado');
+                }
+              } else {
+                const text = await res.text();
+                throw new Error(`Respuesta no JSON: ${text}`);
+              }
+
+              Swal.fire({
+                icon: "success",
+                title: "Reimpresión enviada",
+                text: `El ticket ${item.Codigo} ha sido enviado a impresión.`,
+                customClass: {
+                  title: "swal-font",
+                  htmlContainer: "swal-font",
+                  popup: "alert-card",
+                  confirmButton: "my-confirm-btn",
+                },
+                buttonsStyling: false,
+              });
+
+            } catch (err) {
+              console.error("Error al imprimir:", err);
+              Swal.fire({
+                icon: "error",
+                title: "Error al imprimir",
+                text: err.message || "No se pudo imprimir el ticket.",
+                customClass: {
+                  title: "swal-font",
+                  htmlContainer: "swal-font",
+                  popup: "alert-card",
+                  confirmButton: "my-confirm-btn",
+                },
+                buttonsStyling: false,
+              });
+            } finally {
+              hideSpinner();
+            }
+           });
           });
 
           printCell.appendChild(printButton);
@@ -286,8 +365,94 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
-  reimprimirBtn2.addEventListener("click", function () {
-    // Tu lógica de reimpresión
+  reimprimirBtn2.addEventListener("click", async function () {
+    const codigo = document.querySelector(".info-item:nth-child(2) .info-value").textContent.trim();
+    const tipo = document.querySelector(".info-item:nth-child(1) .info-value").textContent.trim();
+    const fecha = document.querySelector(".info-item:nth-child(3) .info-value").textContent.trim();
+    const hora = document.querySelector(".info-item:nth-child(4) .info-value").textContent.trim();
+    const estado = document.querySelector(".info-item:nth-child(5) .info-value").textContent.trim().toUpperCase();
+
+    if (estado !== "BOLETO SIN USAR") {
+      Swal.fire({
+        icon: "warning",
+        title: "Reimpresión no permitida",
+        text: "No se puede reimprimir un boleto que ya ha sido ocupado.",
+        customClass: {
+          title: "swal-font",
+          htmlContainer: "swal-font",
+          popup: "alert-card",
+          confirmButton: "my-confirm-btn",
+        },
+        buttonsStyling: false,
+      });
+      return;
+    }
+
+    showSpinner();
+
+    try {
+      const contenedorQR = document.getElementById("contenedorTicketQR2");
+      const qrCanvas = contenedorQR.querySelector("canvas");
+      let qrBase64 = "";
+      if (qrCanvas) {
+        qrBase64 = qrCanvas.toDataURL("image/png").replace(/^data:image\/png;base64,/, "");
+      }
+
+      const payload = {
+        Codigo: codigo,
+        fecha,
+        hora,
+        tipo,
+        qrBase64
+      };
+
+      const res = await fetch("https://localhost:3000/api/print", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        const data = await res.json();
+        if (!data.success) {
+          throw new Error(data.error || "Error inesperado");
+        }
+      } else {
+        const text = await res.text();
+        throw new Error(`Respuesta no JSON: ${text}`);
+      }
+
+      Swal.fire({
+        icon: "success",
+        title: "Reimpresión enviada",
+        text: `El ticket ${codigo} ha sido enviado a impresión.`,
+        customClass: {
+          title: "swal-font",
+          htmlContainer: "swal-font",
+          popup: "alert-card",
+          confirmButton: "my-confirm-btn",
+        },
+        buttonsStyling: false,
+      });
+
+    } catch (err) {
+      console.error("Error al imprimir:", err);
+      Swal.fire({
+        icon: "error",
+        title: "Error al imprimir",
+        text: err.message || "No se pudo imprimir el ticket.",
+        customClass: {
+          title: "swal-font",
+          htmlContainer: "swal-font",
+          popup: "alert-card",
+          confirmButton: "my-confirm-btn",
+        },
+        buttonsStyling: false,
+      });
+    } finally {
+      hideSpinner();
+    }
   });
 });
 
