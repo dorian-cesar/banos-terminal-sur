@@ -5,6 +5,11 @@ const parrafoHora = document.getElementById("hora");
 const parrafoTipo = document.getElementById("tipo");
 const botonesQR = document.querySelectorAll(".generarQR");
 
+const restroom = {
+  BAÑO: 500,
+  DUCHA: 4000
+};
+
 const QR = new QRCode(contenedorQR);
 QR.makeCode("wit");
 
@@ -14,88 +19,183 @@ const url = urlBase + "/TerminalCalama/PHP/Restroom/save.php";
 // console.log(urlBase);
 
 // leerDatosServer();
+let datosPendientes = null;
+
+let botonActivo = null;
 
 botonesQR.forEach((btn) => {
-  btn.addEventListener("click", async (e) => {
+  btn.addEventListener("click", (e) => {
     e.preventDefault();
-    btn.disabled = true;
-    btn.classList.add("disabled");
+
+    // Validación de id_caja en localStorage
+    const id_caja = localStorage.getItem('id_caja');
+    // if (!id_caja) {
+    //     alert('Por favor, primero debe abrir la caja antes de generar un QR.');
+    //     return; // Detiene la ejecución si no hay id_caja
+    // }
 
     const fechaHoraAct = new Date();
     const horaStr = `${fechaHoraAct.getHours().toString().padStart(2, '0')}:${fechaHoraAct.getMinutes().toString().padStart(2, '0')}:${fechaHoraAct.getSeconds().toString().padStart(2, '0')}`;
     const fechaStr = fechaHoraAct.toISOString().split("T")[0];
     const tipoStr = btn.dataset.tipo;
-    
-    const numeroT = generarTokenNumerico();
+    const numeroT = generarTokenNumerico();    
+    const valor = restroom[tipoStr] || 0;           
 
-    parrafoFecha.textContent = fechaStr;
-    parrafoHora.textContent = horaStr;
-    parrafoTipo.textContent = tipoStr;
-    parrafoCodigo.textContent = numeroT;
-
-    const datos = {
+    datosPendientes = {
       Codigo: numeroT,
       hora: horaStr,
       fecha: fechaStr,
       tipo: tipoStr,
+      valor: valor,       
+      id_caja: id_caja     
     };
 
-    await callApi(datos);
+    botonActivo = btn;    
+    btn.classList.add("disabled");
 
-    // Esperamos brevemente a que el QR se actualice en el DOM
-    QR.makeCode(numeroT);
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    // Capturamos el QR como base64
-    const qrCanvas = contenedorQR.querySelector("canvas");
-    let qrBase64 = "";
-    if (qrCanvas) {
-      qrBase64 = qrCanvas.toDataURL("image/png").replace(/^data:image\/png;base64,/, "");
-    }
-
-    // Enviamos a la API de impresión
-    const payload = {
-      Codigo: numeroT,
-      hora: horaStr,
-      fecha: fechaStr,
-      tipo: tipoStr,
-      qrBase64: qrBase64
-    };
-
-    const estado = document.createElement("p");
-    contenedorQR.appendChild(estado);
-
-    fetch('https://localhost:3000/api/print', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-    .then(async res => {
-      const contentType = res.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        const data = await res.json();
-        if (!data.success) {
-          throw new Error(data.error || 'Error inesperado');
-        }        
-      } else {
-        const text = await res.text();
-        throw new Error(`Respuesta no JSON: ${text}`);
-      }
-    })
-    .catch(err => {
-      estado.textContent = `❌ Error al imprimir: ${err.message}`;
-    });
-
-    // Resto de lógica
-    btn.disabled = false;
-    btn.classList.remove("disabled");
-    addUser(numeroT);
-
-    setTimeout(() => {
-      let name = numeroT.substring(0, 6);
-      addUserAccessLevel(name);
-    }, 1000);
+    document.getElementById("modalPago").style.display = "flex";
   });
+});
+
+function cerrarModalPago() {
+  document.getElementById("modalPago").style.display = "none";
+  if (botonActivo) {
+    botonActivo.disabled = false;
+    botonActivo.classList.remove("disabled");
+    botonActivo = null;
+  }
+  datosPendientes = null;
+}
+
+async function continuarConPago(metodoPago) {
+  if (!datosPendientes) return;
+
+  const { Codigo, hora, fecha, tipo, valor, id_caja } = datosPendientes;
+  const datos = { Codigo, hora, fecha, tipo, valor, id_caja }
+
+  // Si es tarjeta, primero procesar el pago
+  if (metodoPago === "TARJETA") {
+    const monto = tipo === "BAÑO" ? 500 : tipo === "DUCHA" ? 4000 : 0;
+
+    try {
+      showSpinner();
+
+      const res = await fetch("https://localhost:3000/api/payment", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          amount: monto,
+          ticketNumber: Codigo,
+        }),
+      });
+
+      const contentType = res.headers.get("content-type");
+      if (!res.ok) {
+        if (contentType?.includes("application/json")) {
+          const errData = await res.json();
+          throw new Error(errData.message || "Error en el pago");
+        } else {
+          const text = await res.text();
+          throw new Error(text);
+        }
+      }
+
+      const result = await res.json();
+      console.log("✅ Transacción aprobada:", result);
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "Pago fallido",
+        text: err.message || "No se pudo completar el pago con tarjeta.",
+        customClass: {
+          title: "swal-font",
+          htmlContainer: "swal-font",
+          popup: "alert-card",
+          confirmButton: "my-confirm-btn",
+        },
+        buttonsStyling: false,
+      });
+
+      hideSpinner();
+      cerrarModalPago();
+      return; // NO CONTINÚA si falló el pago
+    }
+  }
+
+  // Mostrar datos en la interfaz
+  parrafoFecha.textContent = fecha;
+  parrafoHora.textContent = hora;
+  parrafoTipo.textContent = tipo + ` (${metodoPago})`;
+  parrafoCodigo.textContent = Codigo;
+
+  showSpinner();
+
+  await callApi(datos);
+
+  QR.makeCode(Codigo);
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  const qrCanvas = contenedorQR.querySelector("canvas");
+  let qrBase64 = "";
+  if (qrCanvas) {
+    qrBase64 = qrCanvas.toDataURL("image/png").replace(/^data:image\/png;base64,/, "");
+  }
+
+  const payload = {
+    Codigo,
+    hora,
+    fecha,
+    tipo,
+    qrBase64
+  };
+
+  const estado = document.createElement("p");
+  contenedorQR.appendChild(estado);
+
+  fetch('https://localhost:3000/api/print', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  .then(async res => {
+    const contentType = res.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.error || 'Error inesperado');
+      }
+    } else {
+      const text = await res.text();
+      throw new Error(`Respuesta no JSON: ${text}`);
+    }
+  })
+  .catch(err => {
+    estado.textContent = `❌ Error al imprimir: ${err.message}`;
+  })
+  .finally(() => {
+    hideSpinner();
+    if (botonActivo) {
+      botonActivo.disabled = false;
+      botonActivo.classList.remove("disabled");
+      botonActivo = null;
+    }
+  });
+
+  addUser(Codigo);
+  setTimeout(() => {
+    addUserAccessLevel(Codigo.substring(0, 6));
+  }, 1000);
+
+  document.getElementById("modalPago").style.display = "none";
+  datosPendientes = null;
+}
+
+
+// Eventos de los botones del modal de pago
+document.getElementById("btnPagoEfectivo").addEventListener("click", () => {
+  continuarConPago("EFECTIVO");
 });
 
 
@@ -253,3 +353,17 @@ async function addUserAccessLevel(token) {
     console.error("Error al asignar niveles de acceso:", error);
   }
 }
+
+function cerrarModalPago() {
+  document.getElementById("modalPago").style.display = "none";
+  datosPendientes = null;
+}
+
+// Eventos para botones de pago
+document.getElementById("btnPagoEfectivo").addEventListener("click", () => {
+  continuarConPago("EFECTIVO");
+});
+
+document.getElementById("btnPagoTarjeta").addEventListener("click", () => {
+  continuarConPago("TARJETA");
+});

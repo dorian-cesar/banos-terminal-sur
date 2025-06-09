@@ -225,6 +225,16 @@
           </div>
         </div>
       </div>
+
+      <div id="modalPago" style="display:none; position:fixed; z-index:9999; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.6); justify-content:center; align-items:center;">
+        <div style="background:#fff; padding:20px 30px; border-radius:10px; text-align:center; width:90%; max-width:400px;">
+          <h3>Selecciona método de pago</h3>
+          <button id="btnPagoEfectivo" class="sm-button" style="margin:10px;">💵 Efectivo</button>
+          <button id="btnPagoTarjeta" class="sm-button" style="margin:10px;">💳 Tarjeta</button>
+          <br />
+          <button onclick="cerrarModalPago()" class="sm-button" style="margin-top:15px;">Cancelar</button>
+        </div>
+      </div>
     </main>
   </body>
 </html>
