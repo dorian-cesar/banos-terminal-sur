@@ -92,19 +92,26 @@ async function continuarConPago(metodoPago) {
       });
 
       const contentType = res.headers.get("content-type");
-      if (!res.ok) {
-        if (contentType?.includes("application/json")) {
-          const errData = await res.json();
-          throw new Error(errData.message || "Error en el pago");
-        } else {
-          const text = await res.text();
-          throw new Error(text);
-        }
+
+      let result;
+      if (contentType && contentType.includes("application/json")) {
+        result = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(`Respuesta no válida del servidor: ${text}`);
       }
 
-      const result = await res.json();
+      // Validación real del estado de la transacción
+      const data = result.data;
+      if (!data || !data.successful || data.responseCode !== 0) {
+        const msg = data?.responseMessage || "Pago no aprobado por el POS";
+        throw new Error(`Transacción fallida: ${msg}`);
+      }
+
       console.log("✅ Transacción aprobada:", result);
+
     } catch (err) {
+      console.error("❌ Error durante el pago:", err);
       Swal.fire({
         icon: "error",
         title: "Pago fallido",
@@ -117,10 +124,9 @@ async function continuarConPago(metodoPago) {
         },
         buttonsStyling: false,
       });
-
       hideSpinner();
       cerrarModalPago();
-      return; // NO CONTINÚA si falló el pago
+      return;
     }
   }
 
