@@ -347,7 +347,7 @@ async function addUserAccessLevel(token) {
       body: JSON.stringify(accessData),
     });
 
-    let result = await response.text(); // Esperar la respuesta
+    let result = await response.text();
     console.log("Respuesta de addLevelUser:", result);
   } catch (error) {
     console.error("Error al asignar niveles de acceso:", error);
