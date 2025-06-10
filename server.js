@@ -17,7 +17,7 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: { 
-      secure: true, // Cambiar a true en producción con HTTPS
+      secure: false, // Cambiar a true en producción con HTTPS
       maxAge: 24 * 60 * 60 * 1000 // 1 día
     }
   })

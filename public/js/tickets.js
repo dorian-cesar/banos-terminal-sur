@@ -199,12 +199,6 @@ async function continuarConPago(metodoPago) {
 }
 
 
-// Eventos de los botones del modal de pago
-document.getElementById("btnPagoEfectivo").addEventListener("click", () => {
-  continuarConPago("EFECTIVO");
-});
-
-
 function generarTokenNumerico() {
   let token = (Math.floor(Math.random() * 9) + 1).toString();
   for (let i = 1; i < 10; i++) {
