@@ -6,13 +6,13 @@ import db from '../db_config/db.js';
 const router = express.Router();
 
 // Procesar login
-router.post('/login', async (req, res) => {
+router.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
   try {
     const [rows] = await db.execute('SELECT * FROM users WHERE username = ?', [username]);
 
     if (rows.length === 0) {
-      return res.send(`<script>alert("Usuario no encontrado"); window.location.href="/";</script>`);
+      return res.status(401).json({ success: false, message: 'Usuario no encontrado' });
     }
 
     const user = rows[0];
@@ -20,13 +20,13 @@ router.post('/login', async (req, res) => {
 
     if (passwordMatch) {
       req.session.user = user.username;
-      return res.redirect('/');
+      return res.json({ success: true, message: 'Login exitoso' });
     } else {
-      return res.send(`<script>alert("Contraseña incorrecta"); window.location.href="/";</script>`);
+      return res.status(401).json({ success: false, message: 'Contraseña incorrecta' });
     }
   } catch (error) {
     console.error('Error en el login:', error);
-    res.status(500).send('Error en el servidor');
+    res.status(500).json({ success: false, message: 'Error en el servidor' });
   }
 });
 

@@ -38,8 +38,7 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `username`, `password`) VALUES
-(3, 'admin', '$2b$10$kFvjSxPiL.kl0zZNNtcfSOjm8jCkaM7bqbSkbAnlFfmpLhFD0Uv6O'),
-(4, 'fito', '$2b$10$i5jGaiV0Eo9Rzn7Hd6blp.9HBBGReEeSg0gPADuof9eoxWE9kqcwK');
+(1, 'admin', '$2b$10$i5jGaiV0Eo9Rzn7Hd6blp.9HBBGReEeSg0gPADuof9eoxWE9kqcwK');
 
 --
 -- Índices para tablas volcadas
