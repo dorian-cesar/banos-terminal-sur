@@ -1,4 +1,219 @@
 document.addEventListener("DOMContentLoaded", function () {
+  const modal = document.getElementById("ticket-overlay");
+  const inputField = document.getElementById("ticketInput");
+  const closeBtn = document.querySelector(".close-button");
+  const reimprimirBtn2 = document.getElementById("reimprimirBtn2");
+  const searchBtn = document.getElementById("searchTicketBtn");
+  // const url = urlBase + "/TerminalCalama/PHP/Restroom/load.php";
+
+  const tipoEl = modal.querySelector(".info-item:nth-child(1) .info-value");
+  const codigoEl = modal.querySelector(".info-item:nth-child(2) .info-value");
+  const fechaEl = modal.querySelector(".info-item:nth-child(3) .info-value");
+  const horaEl = modal.querySelector(".info-item:nth-child(4) .info-value");
+  const estadoEl = modal.querySelector(".info-item:nth-child(5) .info-value");
+
+  searchBtn.addEventListener("click", async function () {
+    const codigo = inputField.value.trim();
+
+    if (!/^\d{10}$/.test(codigo)) {
+      Swal.fire({
+        icon: "warning",
+        title: "Código inválido",
+        text: "El código debe contener exactamente 10 números.",
+        customClass: {
+          title: "swal-font",
+          htmlContainer: "swal-font",
+          popup: "alert-card",
+          confirmButton: "my-confirm-btn",
+        },
+        buttonsStyling: false,
+      });
+      return;
+    }
+
+    if (!codigo) return;
+
+    showSpinner();
+
+    const userPin = codigo.slice(0, 6);
+
+    const url = `${urlBase}/TerminalCalama/PHP/Restroom/getCodigo.php?codigo=${codigo}`;
+    const urlEstado = `${urlBase}/TerminalCalama/PHP/Restroom/estadoBoleto.php?userPin=${userPin}`;
+
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      const ticket = data.find((t) => t.Codigo === codigo);
+      console.log(ticket);
+
+      const resEstado = await fetch(urlEstado);
+      const dataEstado = await resEstado.json();
+      let estadoTicket = dataEstado.message || "No encontrado";
+      estadoTicket = estadoTicket.toUpperCase().replace(/\.$/, "");
+
+      estadoEl.textContent = estadoTicket;
+      estadoEl.style.fontWeight = "bold";
+
+      if (estadoTicket === "BOLETO SIN USAR") {
+        estadoEl.style.color = "green";
+      } else {
+        estadoEl.style.color = "red";
+      }
+
+      if (ticket) {
+        tipoEl.textContent = ticket.tipo;
+        codigoEl.textContent = ticket.Codigo;
+        fechaEl.textContent = ticket.date;
+        horaEl.textContent = ticket.time;
+
+        const numeroT = ticket.Codigo;
+
+        const contenedorTicketQR2 = document.getElementById(
+          "contenedorTicketQR2"
+        );
+        contenedorTicketQR2.innerHTML = "";
+
+        const qr = new QRCode(contenedorTicketQR2, {
+          text: numeroT,
+        });
+
+        modal.style.display = "flex";
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "No encontrado",
+          text: "No se encontró ningún ticket con ese código.",
+          customClass: {
+            title: "swal-font",
+            htmlContainer: "swal-font",
+            popup: "alert-card",
+            confirmButton: "my-confirm-btn",
+          },
+          buttonsStyling: false,
+        });
+        modal.style.display = "none";
+      }
+    } catch (err) {
+      console.error("Error al buscar ticket:", err);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Ocurrió un error al buscar el ticket. Intenta nuevamente.",
+        customClass: {
+          title: "swal-font",
+          htmlContainer: "swal-font",
+          popup: "alert-card",
+          confirmButton: "my-confirm-btn",
+        },
+        buttonsStyling: false,
+      });
+    } finally {
+      hideSpinner();
+    }
+  });
+
+  closeBtn.addEventListener("click", function () {
+    modal.style.display = "none";
+    inputField.value = "";
+  });
+
+  window.addEventListener("click", function (event) {
+    if (event.target === modal) {
+      modal.style.display = "none";
+      inputField.value = "";
+    }
+  });
+
+  reimprimirBtn2.addEventListener("click", async function () {
+    const codigo = document.querySelector(".info-item:nth-child(2) .info-value").textContent.trim();
+    const tipo = document.querySelector(".info-item:nth-child(1) .info-value").textContent.trim();
+    const fecha = document.querySelector(".info-item:nth-child(3) .info-value").textContent.trim();
+    const hora = document.querySelector(".info-item:nth-child(4) .info-value").textContent.trim();
+    const estado = document.querySelector(".info-item:nth-child(5) .info-value").textContent.trim().toUpperCase();
+
+    if (estado !== "BOLETO SIN USAR") {
+      Swal.fire({
+        icon: "warning",
+        title: "Reimpresión no permitida",
+        text: "No se puede reimprimir un boleto que ya ha sido ocupado.",
+        customClass: {
+          title: "swal-font",
+          htmlContainer: "swal-font",
+          popup: "alert-card",
+          confirmButton: "my-confirm-btn",
+        },
+        buttonsStyling: false,
+      });
+      return;
+    }
+
+    showSpinner();
+
+    try {
+      const contenedorQR = document.getElementById("contenedorTicketQR2");
+      const qrCanvas = contenedorQR.querySelector("canvas");
+      let qrBase64 = "";
+      if (qrCanvas) {
+        qrBase64 = qrCanvas.toDataURL("image/png").replace(/^data:image\/png;base64,/, "");
+      }
+
+      const payload = {
+        Codigo: codigo,
+        fecha,
+        hora,
+        tipo,
+        qrBase64
+      };
+
+      const res = await fetch("https://localhost:3000/api/print", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        const data = await res.json();
+        if (!data.success) {
+          throw new Error(data.error || "Error inesperado");
+        }
+      } else {
+        const text = await res.text();
+        throw new Error(`Respuesta no JSON: ${text}`);
+      }
+
+      Swal.fire({
+        icon: "success",
+        title: "Reimpresión enviada",
+        text: `El ticket ${codigo} ha sido enviado a impresión.`,
+        customClass: {
+          title: "swal-font",
+          htmlContainer: "swal-font",
+          popup: "alert-card",
+          confirmButton: "my-confirm-btn",
+        },
+        buttonsStyling: false,
+      });
+
+    } catch (err) {
+      console.error("Error al imprimir:", err);
+      Swal.fire({
+        icon: "error",
+        title: "Error al imprimir",
+        text: err.message || "No se pudo imprimir el ticket.",
+        customClass: {
+          title: "swal-font",
+          htmlContainer: "swal-font",
+          popup: "alert-card",
+          confirmButton: "my-confirm-btn",
+        },
+        buttonsStyling: false,
+      });
+    } finally {
+      hideSpinner();
+    }
+  });
+
   function openResumen() {
     const modal = document.getElementById("resumen-overlay");
     // const spinner = document.getElementById("spinner");
@@ -237,225 +452,6 @@ function closeResumen() {
 function closeTicketModal() {
   document.getElementById("ticket-print-overlay").style.display = "none";
 }
-
-// modal de ticket
-document.addEventListener("DOMContentLoaded", function () {
-  const modal = document.getElementById("ticket-overlay");
-  const inputField = document.getElementById("ticketInput");
-  const closeBtn = document.querySelector(".close-button");
-  const reimprimirBtn2 = document.getElementById("reimprimirBtn2");
-  const searchBtn = document.getElementById("searchTicketBtn");
-  // const url = urlBase + "/TerminalCalama/PHP/Restroom/load.php";
-
-  const tipoEl = modal.querySelector(".info-item:nth-child(1) .info-value");
-  const codigoEl = modal.querySelector(".info-item:nth-child(2) .info-value");
-  const fechaEl = modal.querySelector(".info-item:nth-child(3) .info-value");
-  const horaEl = modal.querySelector(".info-item:nth-child(4) .info-value");
-  const estadoEl = modal.querySelector(".info-item:nth-child(5) .info-value");
-
-  searchBtn.addEventListener("click", async function () {
-    const codigo = inputField.value.trim();
-
-    if (!/^\d{10}$/.test(codigo)) {
-      Swal.fire({
-        icon: "warning",
-        title: "Código inválido",
-        text: "El código debe contener exactamente 10 números.",
-        customClass: {
-          title: "swal-font",
-          htmlContainer: "swal-font",
-          popup: "alert-card",
-          confirmButton: "my-confirm-btn",
-        },
-        buttonsStyling: false,
-      });
-      return;
-    }
-
-    if (!codigo) return;
-
-    showSpinner();
-
-    const userPin = codigo.slice(0, 6);
-
-    const url = `${urlBase}/TerminalCalama/PHP/Restroom/getCodigo.php?codigo=${codigo}`;
-    const urlEstado = `${urlBase}/TerminalCalama/PHP/Restroom/estadoBoleto.php?userPin=${userPin}`;
-
-    try {
-      const res = await fetch(url);
-      const data = await res.json();
-      const ticket = data.find((t) => t.Codigo === codigo);
-      console.log(ticket);
-
-      const resEstado = await fetch(urlEstado);
-      const dataEstado = await resEstado.json();
-      let estadoTicket = dataEstado.message || "No encontrado";
-      estadoTicket = estadoTicket.toUpperCase().replace(/\.$/, "");
-
-      estadoEl.textContent = estadoTicket;
-      estadoEl.style.fontWeight = "bold";
-
-      if (estadoTicket === "BOLETO SIN USAR") {
-        estadoEl.style.color = "green";
-      } else {
-        estadoEl.style.color = "red";
-      }
-
-      if (ticket) {
-        tipoEl.textContent = ticket.tipo;
-        codigoEl.textContent = ticket.Codigo;
-        fechaEl.textContent = ticket.date;
-        horaEl.textContent = ticket.time;
-
-        const numeroT = ticket.Codigo;
-
-        const contenedorTicketQR2 = document.getElementById(
-          "contenedorTicketQR2"
-        );
-        contenedorTicketQR2.innerHTML = "";
-
-        const qr = new QRCode(contenedorTicketQR2, {
-          text: numeroT,
-        });
-
-        modal.style.display = "flex";
-      } else {
-        Swal.fire({
-          icon: "error",
-          title: "No encontrado",
-          text: "No se encontró ningún ticket con ese código.",
-          customClass: {
-            title: "swal-font",
-            htmlContainer: "swal-font",
-            popup: "alert-card",
-            confirmButton: "my-confirm-btn",
-          },
-          buttonsStyling: false,
-        });
-        modal.style.display = "none";
-      }
-    } catch (err) {
-      console.error("Error al buscar ticket:", err);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Ocurrió un error al buscar el ticket. Intenta nuevamente.",
-        customClass: {
-          title: "swal-font",
-          htmlContainer: "swal-font",
-          popup: "alert-card",
-          confirmButton: "my-confirm-btn",
-        },
-        buttonsStyling: false,
-      });
-    } finally {
-      hideSpinner();
-    }
-  });
-
-  closeBtn.addEventListener("click", function () {
-    modal.style.display = "none";
-    inputField.value = "";
-  });
-
-  window.addEventListener("click", function (event) {
-    if (event.target === modal) {
-      modal.style.display = "none";
-      inputField.value = "";
-    }
-  });
-
-  reimprimirBtn2.addEventListener("click", async function () {
-    const codigo = document.querySelector(".info-item:nth-child(2) .info-value").textContent.trim();
-    const tipo = document.querySelector(".info-item:nth-child(1) .info-value").textContent.trim();
-    const fecha = document.querySelector(".info-item:nth-child(3) .info-value").textContent.trim();
-    const hora = document.querySelector(".info-item:nth-child(4) .info-value").textContent.trim();
-    const estado = document.querySelector(".info-item:nth-child(5) .info-value").textContent.trim().toUpperCase();
-
-    if (estado !== "BOLETO SIN USAR") {
-      Swal.fire({
-        icon: "warning",
-        title: "Reimpresión no permitida",
-        text: "No se puede reimprimir un boleto que ya ha sido ocupado.",
-        customClass: {
-          title: "swal-font",
-          htmlContainer: "swal-font",
-          popup: "alert-card",
-          confirmButton: "my-confirm-btn",
-        },
-        buttonsStyling: false,
-      });
-      return;
-    }
-
-    showSpinner();
-
-    try {
-      const contenedorQR = document.getElementById("contenedorTicketQR2");
-      const qrCanvas = contenedorQR.querySelector("canvas");
-      let qrBase64 = "";
-      if (qrCanvas) {
-        qrBase64 = qrCanvas.toDataURL("image/png").replace(/^data:image\/png;base64,/, "");
-      }
-
-      const payload = {
-        Codigo: codigo,
-        fecha,
-        hora,
-        tipo,
-        qrBase64
-      };
-
-      const res = await fetch("https://localhost:3000/api/print", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-
-      const contentType = res.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        const data = await res.json();
-        if (!data.success) {
-          throw new Error(data.error || "Error inesperado");
-        }
-      } else {
-        const text = await res.text();
-        throw new Error(`Respuesta no JSON: ${text}`);
-      }
-
-      Swal.fire({
-        icon: "success",
-        title: "Reimpresión enviada",
-        text: `El ticket ${codigo} ha sido enviado a impresión.`,
-        customClass: {
-          title: "swal-font",
-          htmlContainer: "swal-font",
-          popup: "alert-card",
-          confirmButton: "my-confirm-btn",
-        },
-        buttonsStyling: false,
-      });
-
-    } catch (err) {
-      console.error("Error al imprimir:", err);
-      Swal.fire({
-        icon: "error",
-        title: "Error al imprimir",
-        text: err.message || "No se pudo imprimir el ticket.",
-        customClass: {
-          title: "swal-font",
-          htmlContainer: "swal-font",
-          popup: "alert-card",
-          confirmButton: "my-confirm-btn",
-        },
-        buttonsStyling: false,
-      });
-    } finally {
-      hideSpinner();
-    }
-  });
-});
-
 // animacion codigo qr
 let rotation = 0;
 
