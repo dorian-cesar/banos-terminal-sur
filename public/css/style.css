@@ -146,16 +146,23 @@ h3 {
 }
 
 .logout-button {
-  background: #ff0000 0% 0% no-repeat padding-box;
-  width: 140px;
-  height: 43px;
-  box-shadow: inset 0px 3px 6px #ffffff;
-  border-radius: 24px;
-  border-color: #ff0000;
-  border-style: solid;
-  font: normal normal bold 15px/15px Arial;
-  color: #f5f5f5;
-  cursor: pointer;
+  display: inline-block; /* Para que respete dimensiones de la imagen */
+  border: none;          /* Elimina bordes por defecto */
+  background: none;      /* Fondo transparente */
+  padding: 0;            /* Elimina relleno */
+  cursor: pointer;       /* Cambia el cursor al pasar */
+}
+
+.logout-image {
+  width: 40px;          /* Ajusta al tamaño deseado */
+  height: auto;         /* Mantiene proporción */
+  transition: 0.2s;     /* Para efectos suaves */
+}
+
+/* Efecto hover (opcional) */
+.logout-button:hover .logout-image {
+  opacity: 0.8;
+  transform: scale(1.05);
 }
 
 .logout-button:active {
