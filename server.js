@@ -16,7 +16,7 @@ app.use(
     secret: 'clave-segura-wit', 
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: false } // Si usas HTTPS, cambia a `true`
+    cookie: { secure: true } // Si usas HTTPS, cambia a `true`
   })
 );
 

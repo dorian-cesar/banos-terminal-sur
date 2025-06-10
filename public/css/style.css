@@ -154,7 +154,7 @@ h3 {
 }
 
 .logout-image {
-  width: 40px;          /* Ajusta al tamaño deseado */
+  width: 60px;          /* Ajusta al tamaño deseado */
   height: auto;         /* Mantiene proporción */
   transition: 0.2s;     /* Para efectos suaves */
 }
