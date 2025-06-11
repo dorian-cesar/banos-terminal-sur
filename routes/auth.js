@@ -1,7 +1,7 @@
-import express from 'express';
-import bcrypt from 'bcrypt';
-import path from 'path';
-import db from '../db_config/db.js';
+const express = require('express');
+const bcrypt = require('bcrypt');
+const path = require('path');
+const db = require('../db_config/db.js');
 
 const router = express.Router();
 
@@ -65,4 +65,4 @@ router.get('/logout', (req, res) => {
   });
 });
 
-export default router;
+module.exports = router;
