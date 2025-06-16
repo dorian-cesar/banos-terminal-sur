@@ -5,6 +5,13 @@ const db = require('../db_config/db.js');
 
 const router = express.Router();
 
+const requireLogin = (req, res, next) => {
+  if (!req.session.user) {
+    return res.redirect('/');
+  }
+  next();
+};
+
 // Procesar login
 router.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
@@ -64,5 +71,14 @@ router.get('/logout', (req, res) => {
     res.redirect('/'); 
   });
 });
+
+
+// Ruta protegida para el panel principal del sistema:
+// Solo los usuarios autenticados pueden acceder directamente a /home.html.
+// Si no hay sesión activa, se redirige al login.
+router.get('/home.html', requireLogin, (req, res) => {
+  res.sendFile(path.join(process.cwd(), 'views', 'home.html'));
+});
+
 
 module.exports = router;
