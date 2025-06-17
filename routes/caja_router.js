@@ -8,4 +8,7 @@ router.post('/api/caja/abrir', cajaController.abrirCaja);
 // Ruta para cerrar caja
 router.post('/api/caja/cerrar', cajaController.cerrarCaja);
 
+// Ruta para listar cajas
+router.get('/api/caja/listar', cajaController.listarCajas);
+
 module.exports = router;

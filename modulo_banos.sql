@@ -23,8 +23,8 @@ CREATE TABLE caja (
   estado ENUM('abierta', 'cerrada') NOT NULL DEFAULT 'abierta',
   hora_cierre TIME DEFAULT NULL,
   fecha_cierre DATE NOT NULL,
-  total_efectivo DECIMAL(10, 2) DEFAULT 0,
-  total_tarjeta DECIMAL(10, 2) DEFAULT 0,
+  venta_efectivo DECIMAL(10, 2) DEFAULT 0,
+  venta_tarjeta DECIMAL(10, 2) DEFAULT 0,
   observaciones TEXT
 );
 
@@ -47,7 +47,7 @@ CREATE TABLE cierres_diarios (
   id_caja INT NOT NULL,
   fecha DATE NOT NULL,
   hora_cierre TIME NOT NULL,
-  total_efectivo DECIMAL(10,2) NOT NULL,
-  total_tarjeta DECIMAL(10,2) NOT NULL,
+  venta_efectivo DECIMAL(10,2) NOT NULL,
+  venta_tarjeta DECIMAL(10,2) NOT NULL,
   FOREIGN KEY (id_caja) REFERENCES caja(id)
 );

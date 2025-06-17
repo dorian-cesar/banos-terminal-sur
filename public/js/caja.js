@@ -1,33 +1,60 @@
 $(document).ready(function () {
-  function mostrarCaja(data) {
-    $('#infoCaja').html(`
-      <div class="card mt-3">
-        <div class="card-header">Resumen de Caja</div>
-        <div class="card-body">
-          <p><strong>ID Caja:</strong> ${data.id || data.id_caja}</p>
-          <p><strong>Fecha:</strong> ${data.fecha}</p>
-          <p><strong>Hora inicio:</strong> ${data.hora_inicio || '-'}</p>
-          <p><strong>Monto inicial:</strong> $${data.monto_inicial}</p>
-          <p><strong>Monto efectivo:</strong> $${data.total_efectivo || 0}</p>
-          <p><strong>Monto tarjeta:</strong> $${data.total_tarjeta || 0}</p>
-          <p><strong>Hora cierre:</strong> ${data.hora_cierre || '-'}</p>
-          <p><strong>Estado:</strong> ${data.estado}</p>
-        </div>
-      </div>
-    `);
+  // Función para cargar y mostrar todas las cajas
+  function cargarCajas() {
+    $.get('/api/caja/listar', function (data) {
+      if (data.success && data.cajas.length > 0) {
+        const tbody = $('#tablaCaja tbody');
+        tbody.empty();
+        
+        data.cajas.forEach(caja => {
+          // Calcular total_efectivo
+          const totalEfectivo = parseFloat(caja.monto_inicial) + parseFloat(caja.venta_efectivo || 0);
+          
+          const row = `
+            <tr>
+              <td>${caja.id}</td>
+              <td>${caja.fecha}</td>
+              <td>${caja.hora_inicio || '-'}</td>
+              <td>${caja.hora_cierre || '-'}</td>
+              <td>$${parseFloat(caja.monto_inicial).toFixed(2)}</td>
+              <td>$${parseFloat(caja.venta_efectivo || 0).toFixed(2)}</td>
+              <td>$${parseFloat(caja.venta_tarjeta || 0).toFixed(2)}</td>
+              <td>$${totalEfectivo.toFixed(2)}</td>
+              <td>${caja.estado}</td>
+              <td>${caja.observaciones || '-'}</td>
+            </tr>
+          `;
+          tbody.append(row);
+        });
+      } else {
+        $('#tablaCaja tbody').html('<tr><td colspan="10" class="text-center">No hay registros de caja</td></tr>');
+      }
+    }).fail(function () {
+      $('#mensaje').html('<div class="alert alert-danger">Error al cargar los registros de caja</div>');
+    });
   }
+
+  // Cargar cajas al iniciar
+  cargarCajas();
+
+  // Botón para actualizar la lista
+  $('#btnActualizar').on('click', cargarCajas);
 
   $('#formInicioCaja').on('submit', function (e) {
     e.preventDefault();
     let monto = $('#monto_inicial_modal').val();
+    let observaciones = $('#observaciones_modal').val();
 
-    $.post('/api/caja/abrir', { monto_inicial: monto }, function (res) {
+    $.post('/api/caja/abrir', { 
+      monto_inicial: monto,
+      observaciones: observaciones 
+    }, function (res) {
       if (res.success) {
         localStorage.setItem('id_caja', res.id);
-        mostrarCaja(res);
         $('#modalInicio').modal('hide');
         $('#mensaje').html('<div class="alert alert-success">Caja abierta correctamente</div>');
         $('#btnAbrirCaja').prop('disabled', true);
+        cargarCajas(); // Actualizar la tabla después de abrir
       } else {
         $('#mensaje').html('<div class="alert alert-danger">' + res.error + '</div>');
       }
@@ -49,9 +76,9 @@ $(document).ready(function () {
       success: function (data) {
         if (data.success) {
           localStorage.removeItem('id_caja');
-          mostrarCaja(data);
           $('#mensaje').html('<div class="alert alert-info">Caja cerrada correctamente</div>');
           $('#btnAbrirCaja').prop('disabled', false);
+          cargarCajas(); // Actualizar la tabla después de cerrar
         } else {
           $('#mensaje').html('<div class="alert alert-danger">' + (data.error || 'Error desconocido') + '</div>');
         }
@@ -68,15 +95,10 @@ $(document).ready(function () {
     $('#resumenCaja').hide();
   });
 
-  // Mostrar caja si hay una abierta
+  // Mostrar mensaje si hay caja abierta
   const id = localStorage.getItem('id_caja');
   if (id) {
     $('#mensajeCaja').html(`<div class="alert alert-info">Hay una caja abierta con ID: ${id}</div>`);
-    $.post('/api/caja/mostrar', { id_caja: id }, function (res) {
-      if (res.success) {
-        mostrarCaja(res);
-        $('#btnAbrirCaja').prop('disabled', true);
-      }
-    });
+    $('#btnAbrirCaja').prop('disabled', true);
   }
 });
