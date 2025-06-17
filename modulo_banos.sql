@@ -22,6 +22,7 @@ CREATE TABLE caja (
   monto_inicial DECIMAL(10, 2) NOT NULL,
   estado ENUM('abierta', 'cerrada') NOT NULL DEFAULT 'abierta',
   hora_cierre TIME DEFAULT NULL,
+  fecha_cierre DATE NOT NULL,
   total_efectivo DECIMAL(10, 2) DEFAULT 0,
   total_tarjeta DECIMAL(10, 2) DEFAULT 0,
   observaciones TEXT

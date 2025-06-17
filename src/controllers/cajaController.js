@@ -79,6 +79,18 @@ exports.cerrarCaja = async (req, res) => {
       [id_caja, fecha, hora_cierre, total_efectivo, total_tarjeta]
     );
 
+    // Actualizar tabla caja
+    await pool.execute(
+      `UPDATE caja
+       SET estado = 'cerrada',
+           hora_cierre = ?,
+           fecha_cierre = ?,
+           total_efectivo = ?,
+           total_tarjeta = ?
+       WHERE id = ? AND estado = 'abierta'`,
+      [hora_cierre, fecha, total_efectivo, total_tarjeta, id_caja]
+    );
+
     res.json({
       success: true,
       message: 'Caja cerrada correctamente',
@@ -95,5 +107,3 @@ exports.cerrarCaja = async (req, res) => {
     res.status(500).json({ success: false, error: 'Error interno al cerrar caja' });
   }
 };
-
-

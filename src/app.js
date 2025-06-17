@@ -5,7 +5,7 @@ const bodyParser = require('body-parser');
 const logger = require('./utils/logger');
 const path = require('path');
 const { imprimirTicket } = require('./services/printService');
-const { registrarMovimiento } = require('./controllers/movimientosController');
+const { registrarMovimiento } = require('./controllers/cajaController');
 
 
 const paymentController = require('./controllers/paymentController');
