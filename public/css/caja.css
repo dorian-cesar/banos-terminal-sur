@@ -1,0 +1,57 @@
+body {
+  background-color: #1c1c1c;
+  color: white;
+}
+
+#volver {
+  position: fixed;
+  right: 400px;
+  top: 20px;
+  padding: 10px 20px;
+  background-color: #4CAF50;
+  color: white;
+  text-decoration: none;
+  border-radius: 5px;
+  font-weight: bold;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.3s ease;
+  z-index: 1000;
+}
+
+#volver:hover {
+  background-color: #45a049;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.form-control,
+.btn {
+  background-color: #333;
+  color: white;
+  border: 1px solid #555;
+}
+
+.btn:hover {
+  background-color: #555;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #resumenCaja,
+  #resumenCaja * {
+    visibility: visible;
+  }
+
+  #resumenCaja {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 7cm;
+    background-color: white;
+    color: black;
+    padding: 10px;
+    font-size: 12px;
+  }
+}

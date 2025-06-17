@@ -11,7 +11,7 @@ exports.abrirCaja = async (req, res) => {
   const hora = new Date().toTimeString().slice(0, 8);   // HH:MM:SS
 
   try {
-    const [result] = await db.execute(
+    const [result] = await pool.execute(
       "INSERT INTO caja (fecha, hora_inicio, monto_inicial, estado) VALUES (?, ?, ?, 'abierta')",
       [fecha, hora, parseFloat(monto_inicial)]
     );

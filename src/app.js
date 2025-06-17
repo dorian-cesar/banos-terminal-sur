@@ -12,7 +12,7 @@ const paymentController = require('./controllers/paymentController');
 const terminalController = require('./controllers/terminalController');
 const transbankService = require('./services/transbankService');
 
-const cajaRoutes = require('../routes/caja');
+const cajaRoutes = require('../routes/caja_router');
 
 const app = express();
 
