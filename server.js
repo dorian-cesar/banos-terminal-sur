@@ -49,6 +49,12 @@ app.get('/login.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'login.html'));
 });
 
+app.get('/caja.html', (req, res) => {
+  if (!req.session.user) {
+    return res.redirect('/');
+  }
+  res.sendFile(path.join(__dirname, 'views', 'caja.html'));
+});
 
 
 // ----------------- lógica de conexión y monitor POS -----------------

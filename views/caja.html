@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Control de Caja</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <style>
+    body {
+      background-color: #1c1c1c;
+      color: white;
+    }
+
+    #volver {
+      position: fixed;
+      right: 400px;
+      top: 20px;
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+      font-weight: bold;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      transition: background-color 0.3s ease;
+      z-index: 1000;
+    }
+
+    #volver:hover {
+      background-color: #45a049;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .form-control,
+    .btn {
+      background-color: #333;
+      color: white;
+      border: 1px solid #555;
+    }
+
+    .btn:hover {
+      background-color: #555;
+    }
+
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+
+      #resumenCaja,
+      #resumenCaja * {
+        visibility: visible;
+      }
+
+      #resumenCaja {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 7cm;
+        background-color: white;
+        color: black;
+        padding: 10px;
+        font-size: 12px;
+      }
+    }
+  </style>
+</head>
+
+<body class="container py-5">
+  <a href="/home.html" id="volver" class="btn">Volver</a>
+  <h1 class="mb-4">Control de Caja</h1>
+
+  <div id="mensajeCaja"></div>
+
+  <button class="btn btn-success mb-4" data-bs-toggle="modal" data-bs-target="#modalInicio" id="btnAbrirCaja">Abrir Caja</button>
+  <button id="btnCerrarCaja" class="btn btn-danger mb-4">Cerrar Caja</button>
+  <button id="btnImprimir" class="btn btn-secondary mb-4">Imprimir Resumen</button>
+
+  <table class="table table-dark table-bordered" id="tablaCaja" style="display:none;">
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>Hora Inicio</th>
+        <th>Hora Cierre</th>
+        <th>Monto Inicial</th>
+        <th>Monto Baños</th>
+        <th>Monto Custodia</th>
+        <th>Monto Parking</th>
+        <th>Monto Andenes</th>
+        <th>Monto Total</th>
+        <th>Estado</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <div id="resumenCaja" style="display: none;"></div>
+  <div id="mensaje" class="mt-3"></div>
+
+  <!-- Modal Inicio Caja -->
+  <div class="modal fade" id="modalInicio" tabindex="-1" aria-labelledby="modalInicioLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content bg-dark text-white">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalInicioLabel">Iniciar Caja</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formInicioCaja">
+            <div class="mb-3">
+              <label for="monto_inicial_modal" class="form-label">Monto Inicial</label>
+              <input type="number" step="0.01" class="form-control" id="monto_inicial_modal" name="monto_inicial" required>
+            </div>
+            <button type="submit" class="btn btn-success">Abrir Caja</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    function mostrarCaja(data) {
+      const monto_bano = parseFloat(data.monto_bano || 0);
+      const monto_custodia = parseFloat(data.monto_custodia || 0);
+      const monto_parking = parseFloat(data.monto_parking || 0);
+      const monto_andenes = parseFloat(data.monto_andenes || 0);
+      const monto_inicial = parseFloat(data.monto_inicial || 0);
+      const total = monto_inicial + monto_bano + monto_custodia + monto_parking + monto_andenes;
+
+      $('#tablaCaja tbody').html(`
+        <tr>
+          <td>${data.fecha}</td>
+          <td>${data.hora_inicio}</td>
+          <td>${data.hora_cierre ? data.hora_cierre : '-'}</td>
+          <td>${monto_inicial.toFixed(2)}</td>
+          <td>${monto_bano.toFixed(2)}</td>
+          <td>${monto_custodia.toFixed(2)}</td>
+          <td>${monto_parking.toFixed(2)}</td>
+          <td>${monto_andenes.toFixed(2)}</td>
+          <td>${total.toFixed(2)}</td>
+          <td>${data.estado}</td>
+        </tr>
+      `);
+      $('#tablaCaja').show();
+
+      $('#resumenCaja').html(`
+        <h4>Resumen Caja</h4>
+        <p>Fecha: ${data.fecha}</p>
+        <p>Hora Inicio: ${data.hora_inicio}</p>
+        ${data.hora_cierre ? `<p>Hora Cierre: ${data.hora_cierre}</p>` : ''}
+        <p>Monto Inicial: $${monto_inicial.toFixed(2)}</p>
+        <p>Baños: $${monto_bano.toFixed(2)}</p>
+        <p>Custodia: $${monto_custodia.toFixed(2)}</p>
+        <p>Parking: $${monto_parking.toFixed(2)}</p>
+        <p>Andenes: $${monto_andenes.toFixed(2)}</p>
+        <p><strong>Total: $${total.toFixed(2)}</strong></p>
+        <p>Estado: ${data.estado}</p>
+      `);
+    }
+
+    $('#formInicioCaja').on('submit', function (e) {
+      e.preventDefault();
+      let monto = $('#monto_inicial_modal').val();
+      $.post('/api/caja/abrir', { accion: 'abrir', monto_inicial: monto }, function (res) {
+        let data = res;
+        if (data.success) {
+          localStorage.setItem('id_caja', data.id);
+          mostrarCaja(data);
+          $('#modalInicio').modal('hide');
+          $('#mensaje').html('<div class="alert alert-success">Caja abierta correctamente</div>');
+          $('#btnAbrirCaja').prop('disabled', true);
+        } else {
+          $('#mensaje').html('<div class="alert alert-danger">' + data.error + '</div>');
+        }
+      });
+    });
+
+    $('#btnCerrarCaja').on('click', function () {
+      let id = localStorage.getItem('id_caja');
+      if (!id) {
+        $('#mensaje').html('<div class="alert alert-warning">No hay caja abierta.</div>');
+        return;
+      }
+
+      $.ajax({
+        url: '/api/caja/cerrar',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ id_caja: id }),
+        success: function (data) {
+          if (data.success) {
+            localStorage.removeItem('id_caja');
+            mostrarCaja(data); // Asegúrate que mostrarCaja aún tenga sentido en contexto
+            $('#mensaje').html('<div class="alert alert-info">Caja cerrada correctamente</div>');
+            $('#btnAbrirCaja').prop('disabled', false);
+          } else {
+            $('#mensaje').html('<div class="alert alert-danger">' + (data.error || 'Error desconocido') + '</div>');
+          }
+        },
+        error: function (xhr, status, error) {
+          $('#mensaje').html('<div class="alert alert-danger">Error en el servidor: ' + error + '</div>');
+        }
+      });
+    });
+
+
+    $('#btnImprimir').on('click', function () {
+      $('#resumenCaja').show();
+      window.print();
+      $('#resumenCaja').hide();
+    });
+
+    $(document).ready(function () {
+      const id = localStorage.getItem('id_caja');
+      if (id) {
+        $('#mensajeCaja').html(`<div class="alert alert-info">Hay una caja abierta con ID: ${id}</div>`);
+        $.post('caja.php', { accion: 'mostrar', id_caja: id }, function (res) {
+          const data = JSON.parse(res);
+          if (data.success) {
+            mostrarCaja(data);
+            $('#btnAbrirCaja').prop('disabled', true);
+          }
+        });
+      }
+    });
+  </script>
+</body>
+
+</html>

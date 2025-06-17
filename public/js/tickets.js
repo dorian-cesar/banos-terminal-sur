@@ -29,10 +29,10 @@ botonesQR.forEach((btn) => {
 
     // Validación de id_caja en localStorage
     const id_caja = localStorage.getItem('id_caja');
-    // if (!id_caja) {
-    //     alert('Por favor, primero debe abrir la caja antes de generar un QR.');
-    //     return; // Detiene la ejecución si no hay id_caja
-    // }
+    if (!id_caja) {
+        alert('Por favor, primero debe abrir la caja antes de generar un QR.');
+        return; // Detiene la ejecución si no hay id_caja
+    }
 
     const fechaHoraAct = new Date();
     const horaStr = `${fechaHoraAct.getHours().toString().padStart(2, '0')}:${fechaHoraAct.getMinutes().toString().padStart(2, '0')}:${fechaHoraAct.getSeconds().toString().padStart(2, '0')}`;
@@ -139,6 +139,19 @@ async function continuarConPago(metodoPago) {
   showSpinner();
 
   await callApi(datos);
+  await fetch('https://localhost:3000/api/movimientos', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      codigo: Codigo,
+      fecha,
+      hora,
+      tipo,
+      valor,
+      metodoPago,
+      id_caja
+    })
+  });
 
   QR.makeCode(Codigo);
   await new Promise(resolve => setTimeout(resolve, 500));

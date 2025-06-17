@@ -5,11 +5,14 @@ const bodyParser = require('body-parser');
 const logger = require('./utils/logger');
 const path = require('path');
 const { imprimirTicket } = require('./services/printService');
+const { registrarMovimiento } = require('./controllers/movimientosController');
 
 
 const paymentController = require('./controllers/paymentController');
 const terminalController = require('./controllers/terminalController');
 const transbankService = require('./services/transbankService');
+
+const cajaRoutes = require('../routes/caja');
 
 const app = express();
 
@@ -54,7 +57,6 @@ app.get('/api/terminal/ports', terminalController.listPorts);
 app.post('/api/terminal/connect', terminalController.conectarPuerto);
 app.get('/api/terminal/status', terminalController.statusPos); 
 app.post('/api/terminal/start-monitor', terminalController.startHealthMonitor);
-
 app.post('/api/terminal/release-port', async (req, res) => {
   try {
     await transbankService.closeConnection();
@@ -63,12 +65,10 @@ app.post('/api/terminal/release-port', async (req, res) => {
     res.status(500).json({ status: 'error', message: error.message, code: 'PORT_RELEASE_FAILED' });
   }
 });
-
 app.get('/tester', (req, res) => {
   res.sendFile(path.join(__dirname, 'tester.html'));
 });
 
-// Ruta de health check
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
@@ -80,6 +80,11 @@ app.get('/health', (req, res) => {
 app.get('/monitor', (req, res) => {
   res.json({ success: true, server: true });
 });
+
+app.post('/api/movimientos', registrarMovimiento);
+
+app.use(cajaRoutes);
+
 
 
 // Manejo de errores generales
@@ -96,13 +101,6 @@ app.use((err, req, res, next) => {
     code: err.responseCode || 'INTERNAL_ERROR'
   });
 });
-
-// Ruta no encontrada
-// app.use((req, res) => {
-//   res.status(404).json({
-//     error: 'Endpoint no encontrado'
-//   });
-// });
 
 // Captura errores fatales para evitar que caiga el servidor
 process.on('uncaughtException', (err) => {
