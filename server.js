@@ -2,7 +2,6 @@ require('dotenv').config();
 
 const fs        = require('fs');
 const path      = require('path');
-const https     = require('https');
 const express   = require('express');
 const session   = require('express-session');
 
@@ -130,15 +129,10 @@ async function connectToPOS () {
 // ---------------------- servidor HTTPS + shutdown -------------------
 async function startServer () {
   try {
-    console.log(`Iniciando servidor en modo ${ENV}`);
+    console.log(`Iniciando servidor en modo ${ENV}`);   
 
-    const sslOptions = {
-      key : fs.readFileSync(path.resolve(__dirname, 'ssl/key.pem')),
-      cert: fs.readFileSync(path.resolve(__dirname, 'ssl/cert.pem'))
-    };
-
-    const server = https.createServer(sslOptions, app).listen(PORT, async () => {
-      console.log(`✅  HTTPS activo en https://localhost:${PORT}`);
+    const server = app.listen(PORT, async () => {
+      console.log(`✅  Servidor HTTP activo en http://localhost:${PORT}`);
       await connectToPOS();
     });
 
