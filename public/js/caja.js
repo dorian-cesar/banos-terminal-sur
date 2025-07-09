@@ -101,4 +101,9 @@ $(document).ready(function () {
     $('#mensajeCaja').html(`<div class="alert alert-info">Hay una caja abierta con ID: ${id}</div>`);
     $('#btnAbrirCaja').prop('disabled', true);
   }
+  
+  document.getElementById('btnVolver').addEventListener('click', () => {
+    window.location.href = '/home.html';
+  });
+
 });

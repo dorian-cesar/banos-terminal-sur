@@ -1,57 +1,102 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  width: 1366px;
+  height: 768px;
+}
+
+
 body {
-  background-color: #1c1c1c;
-  color: white;
+  font-family: Arial, sans-serif;
+  color: #2699fb;
+  top: 0px;
+  left: 0px;
+  width: 1366px;
+  height: 768px;
+  background: #f1f9ff 0% 0% no-repeat padding-box;
+  opacity: 1;
+  position: relative;
+  overflow: hidden;
 }
 
-#volver {
-  position: fixed;
-  right: 400px;
-  top: 20px;
-  padding: 10px 20px;
-  background-color: #4CAF50;
-  color: white;
-  text-decoration: none;
-  border-radius: 5px;
-  font-weight: bold;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  transition: background-color 0.3s ease;
-  z-index: 1000;
+nav {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  top: 0px;
+  left: 0px;
+  width: 100%;
+  height: 104px;
+  background: #bce0fd 0% 0% no-repeat padding-box;
+  opacity: 1;
 }
 
-#volver:hover {
-  background-color: #45a049;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+nav h1 {
+  font: normal normal bold 36px/42px Arial;
+  margin: 0;
 }
 
-.form-control,
+h2 {
+  text-align: left;
+  font: normal normal bold 28px/32px Arial;
+  letter-spacing: 0px;
+  color: #2699fb;
+  margin-bottom: 1.5rem;
+}
+
 .btn {
-  background-color: #333;
-  color: white;
-  border: 1px solid #555;
+  display: inline-block;
+  background: #ff5600 0% 0% no-repeat padding-box;
+  width: 200px;
+  height: 43px;
+  box-shadow: inset 0px 3px 6px #ffffff;
+  border-radius: 24px;
+  border-color: #ff5600;
+  border-style: solid;
+  font: normal normal bold 17px/20px Arial;
+  color: #f5f5f5;
+  cursor: pointer;
 }
 
-.btn:hover {
-  background-color: #555;
+.btn:active {
+  transform: scale(0.96);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-@media print {
-  body * {
-    visibility: hidden;
-  }
 
-  #resumenCaja,
-  #resumenCaja * {
-    visibility: visible;
-  }
 
-  #resumenCaja {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 7cm;
-    background-color: white;
-    color: black;
-    padding: 10px;
-    font-size: 12px;
-  }
+.form-group {
+  margin-bottom: 15px;
 }
+
+label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+input[type="number"] {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+#resumenCaja {
+  display: none;
+  margin-top: 30px;
+  padding: 20px;
+  background-color: #eef4fa;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+
+#resumenCaja h2 {
+  color: #ff5600;
+}
+
