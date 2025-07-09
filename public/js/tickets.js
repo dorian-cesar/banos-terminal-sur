@@ -80,7 +80,7 @@ async function continuarConPago(metodoPago) {
     try {
       showSpinner();
 
-      const res = await fetch("https://localhost:3000/api/payment", {
+      const res = await fetch("http://localhost:3000/api/payment", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -139,7 +139,7 @@ async function continuarConPago(metodoPago) {
   showSpinner();
 
   await callApi(datos);
-  await fetch('https://localhost:3000/api/movimientos', {
+  await fetch('http://localhost:3000/api/movimientos', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -173,7 +173,7 @@ async function continuarConPago(metodoPago) {
   const estado = document.createElement("p");
   contenedorQR.appendChild(estado);
 
-  fetch('https://localhost:3000/api/print', {
+  fetch('http://localhost:3000/api/print', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
