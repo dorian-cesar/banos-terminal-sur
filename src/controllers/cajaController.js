@@ -206,3 +206,58 @@ exports.listarCajas = async (req, res) => {
     res.status(500).json({ success: false, error: 'Error al obtener el listado de cajas' });
   }
 };
+
+exports.registrarArqueoDiario = async (req, res) => {
+  const { creado_por } = req.body;
+
+  if (!creado_por || isNaN(creado_por)) {
+    return res.status(400).json({ success: false, error: 'ID de usuario inválido' });
+  }
+
+  const fechaHoy = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+  try {
+    // Verificar si ya existe un arqueo para hoy
+    const [verificacion] = await pool.execute(
+      `SELECT id FROM arqueos_caja WHERE fecha = ?`,
+      [fechaHoy]
+    );
+    if (verificacion.length > 0) {
+      return res.status(409).json({ success: false, error: 'Ya existe un arqueo para el día de hoy' });
+    }
+
+    // Sumar cierres del día
+    const [result] = await pool.execute(
+      `SELECT 
+        COALESCE(SUM(venta_efectivo), 0) AS total_efectivo,
+        COALESCE(SUM(venta_tarjeta), 0) AS total_tarjeta
+       FROM cierres_diarios
+       WHERE fecha = ?`,
+      [fechaHoy]
+    );
+
+    const total_efectivo = result[0].total_efectivo;
+    const total_tarjeta = result[0].total_tarjeta;
+
+    // Insertar en arqueos_caja
+    await pool.execute(
+      `INSERT INTO arqueos_caja (fecha, total_efectivo, total_tarjeta, creado_por)
+       VALUES (?, ?, ?, ?)`,
+      [fechaHoy, total_efectivo, total_tarjeta, creado_por]
+    );
+
+    res.json({
+      success: true,
+      message: 'Arqueo del día registrado correctamente',
+      arqueo: {
+        fecha: fechaHoy,
+        total_efectivo,
+        total_tarjeta,
+        total_general: total_efectivo + total_tarjeta
+      }
+    });
+  } catch (err) {
+    console.error('Error al registrar arqueo diario:', err);
+    res.status(500).json({ success: false, error: 'Error interno al registrar el arqueo' });
+  }
+};

@@ -64,3 +64,14 @@ CREATE TABLE cierres_diarios (
   FOREIGN KEY (id_caja) REFERENCES caja(id),
   FOREIGN KEY (id_usuario) REFERENCES users(id)
 );
+
+CREATE TABLE arqueos_caja (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  fecha DATE NOT NULL UNIQUE,
+  total_efectivo DECIMAL(10,2) NOT NULL,
+  total_tarjeta DECIMAL(10,2) NOT NULL,
+  total_general DECIMAL(10,2) AS (total_efectivo + total_tarjeta) STORED,
+  creado_por INT NOT NULL,
+  creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (creado_por) REFERENCES users(id)
+);

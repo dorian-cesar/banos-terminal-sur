@@ -170,6 +170,54 @@ $(document).ready(function () {
     });
   });
 
+  $('#btnArqueo').on('click', function () {
+    const token = sessionStorage.getItem('authToken');
+
+    if (!token) {
+      $('#mensaje').html('<div class="alert alert-danger">Sesión inválida. Inicia sesión nuevamente.</div>');
+      sessionStorage.clear();
+      window.location.href = '/login.html';
+      return;
+    }
+
+    function parseJwt(token) {
+      try {
+        const payload = token.split('.')[1];
+        const decoded = JSON.parse(atob(payload));
+        return decoded;
+      } catch (err) {
+        return null;
+      }
+    }
+
+    const payload = parseJwt(token);
+    const creado_por = payload?.id;
+
+    if (!creado_por || isNaN(creado_por)) {
+      $('#mensaje').html('<div class="alert alert-danger">Usuario inválido para realizar el arqueo.</div>');
+      return;
+    }
+
+    $.post('/api/caja/arqueo-diario', { creado_por }, function (res) {
+      if (res.success) {
+        $('#mensaje').html(`
+          <div class="alert alert-success">
+            Arqueo registrado: <br>
+            <strong>Fecha:</strong> ${res.arqueo.fecha}<br>
+            <strong>Total Efectivo:</strong> $${res.arqueo.total_efectivo.toFixed(2)}<br>
+            <strong>Total Tarjeta:</strong> $${res.arqueo.total_tarjeta.toFixed(2)}<br>
+            <strong>Total General:</strong> $${res.arqueo.total_general.toFixed(2)}
+          </div>
+        `);
+      } else {
+        $('#mensaje').html(`<div class="alert alert-danger">${res.error || 'Error al registrar arqueo.'}</div>`);
+      }
+    }).fail(function (xhr) {
+      const mensaje = xhr?.responseJSON?.error || 'Error inesperado en el servidor';
+      $('#mensaje').html(`<div class="alert alert-danger">${mensaje}</div>`);
+    });
+  });
+
   $('#btnImprimir').on('click', function () {
     $('#resumenCaja').show();
     window.print();
