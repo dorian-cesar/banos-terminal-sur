@@ -165,7 +165,7 @@ document.addEventListener("DOMContentLoaded", function () {
         qrBase64
       };
 
-      const res = await fetch("https://localhost:3000/api/print", {
+      const res = await fetch("http://localhost:3000/api/print", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -363,7 +363,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 qrBase64
               };
 
-              const res = await fetch('https://localhost:3000/api/print', {
+              const res = await fetch('http://localhost:3000/api/print', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)

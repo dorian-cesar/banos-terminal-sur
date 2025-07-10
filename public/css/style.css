@@ -154,7 +154,7 @@ h3 {
 }
 
 .caja-image {
-  width: 60px;          /* Ajusta al tamaño deseado */
+  width: 50px;          /* Ajusta al tamaño deseado */
   height: auto;         /* Mantiene proporción */
   transition: 0.2s;     /* Para efectos suaves */
 }
