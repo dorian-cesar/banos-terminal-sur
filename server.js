@@ -22,6 +22,7 @@ app.use(session({
 // estáticos para la interfaz de caja
 // app.use(express.static(path.join(__dirname, 'views')));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'views')));
 
 // rutas de autenticación (login / registro / logout)
 const authRoutes = require('./routes/auth');

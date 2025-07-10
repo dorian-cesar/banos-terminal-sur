@@ -2,40 +2,11 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const path = require('path');
 const db = require('../db_config/db.js');
+const { login } = require('../src/controllers/authController');
 
 const router = express.Router();
 
-const requireLogin = (req, res, next) => {
-  if (!req.session.user) {
-    return res.redirect('/');
-  }
-  next();
-};
-
-// Procesar login
-router.post('/api/login', async (req, res) => {
-  const { username, password } = req.body;
-  try {
-    const [rows] = await db.execute('SELECT * FROM users WHERE username = ?', [username]);
-
-    if (rows.length === 0) {
-      return res.status(401).json({ success: false, message: 'Usuario no encontrado' });
-    }
-
-    const user = rows[0];
-    const passwordMatch = await bcrypt.compare(password, user.password);
-
-    if (passwordMatch) {
-      req.session.user = user.username;
-      return res.json({ success: true, message: 'Login exitoso' });
-    } else {
-      return res.status(401).json({ success: false, message: 'Contraseña incorrecta' });
-    }
-  } catch (error) {
-    console.error('Error en el login:', error);
-    res.status(500).json({ success: false, message: 'Error en el servidor' });
-  }
-});
+router.post('/api/login', login);
 
 // Mostrar formulario de registro
 router.get('/registro', (req, res) => {
@@ -70,14 +41,6 @@ router.get('/logout', (req, res) => {
     res.clearCookie('connect.sid');
     res.redirect('/'); 
   });
-});
-
-
-// Ruta protegida para el panel principal del sistema:
-// Solo los usuarios autenticados pueden acceder directamente a /home.html.
-// Si no hay sesión activa, se redirige al login.
-router.get('/home.html', requireLogin, (req, res) => {
-  res.sendFile(path.join(process.cwd(), 'views', 'home.html'));
 });
 
 

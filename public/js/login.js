@@ -1,20 +1,31 @@
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
 
-  const username = document.getElementById('username').value;
+  const email = document.getElementById('email').value;
   const password = document.getElementById('password').value;
 
-  const response = await fetch('/api/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password })
-  });
+  try {
+    const response = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })  
+    });
 
-  const result = await response.json();
+    const result = await response.json();
 
-  if (result.success) {
-    window.location.href = '/';
-  } else {
-    alert(result.message);
+    if (response.ok) {
+      // Guardar token y usuario en sessionStorage
+      sessionStorage.setItem('authToken', result.token);
+      sessionStorage.setItem('usuario', JSON.stringify(result.usuario));
+
+      // Redireccionar
+      window.location.href = 'home.html';
+    } else {
+      alert(result.error || 'Error al iniciar sesión');
+    }
+
+  } catch (err) {
+    console.error('Error al iniciar sesión:', err);
+    alert('Ocurrió un error en el servidor');
   }
 });

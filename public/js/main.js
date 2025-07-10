@@ -1,3 +1,32 @@
+document.addEventListener('DOMContentLoaded', () => {
+  const token = sessionStorage.getItem('authToken');
+  const usuarioJSON = sessionStorage.getItem('usuario');
+
+  if (!token || !usuarioJSON) {
+    alert('Debes iniciar sesión primero.');
+    window.location.href = '/login.html';
+    return;
+  }
+
+  let usuario;
+  try {
+    usuario = JSON.parse(usuarioJSON);
+  } catch (e) {
+    console.error('Error al parsear usuario:', e);
+    sessionStorage.clear();
+    window.location.href = '/login.html';
+    return;
+  }
+
+  // Validación extra por si el objeto está mal formado
+  if (!usuario.username || !usuario.email || !usuario.role) {
+    alert('Datos de usuario inválidos. Inicia sesión nuevamente.');
+    sessionStorage.clear();
+    window.location.href = '/login.html';
+    return;
+  }
+});
+
 document.addEventListener("DOMContentLoaded", function () {
   const modal = document.getElementById("ticket-overlay");
   const inputField = document.getElementById("ticketInput");

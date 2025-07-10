@@ -71,9 +71,8 @@ async function continuarConPago(metodoPago) {
   if (!datosPendientes) return;
 
   const { Codigo, hora, fecha, tipo, valor, id_caja } = datosPendientes;
-  const datos = { Codigo, hora, fecha, tipo, valor, id_caja }
 
-  // Si es tarjeta, primero procesar el pago
+  // Validación y pago con tarjeta
   if (metodoPago === "TARJETA") {
     const monto = tipo === "BAÑO" ? 500 : tipo === "DUCHA" ? 4000 : 0;
 
@@ -82,9 +81,7 @@ async function continuarConPago(metodoPago) {
 
       const res = await fetch("http://localhost:3000/api/payment", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount: monto,
           ticketNumber: Codigo,
@@ -92,19 +89,10 @@ async function continuarConPago(metodoPago) {
       });
 
       const contentType = res.headers.get("content-type");
+      const result = contentType?.includes("application/json") ? await res.json() : null;
 
-      let result;
-      if (contentType && contentType.includes("application/json")) {
-        result = await res.json();
-      } else {
-        const text = await res.text();
-        throw new Error(`Respuesta no válida del servidor: ${text}`);
-      }
-
-      // Validación real del estado de la transacción
-      const data = result.data;
-      if (!data || !data.successful || data.responseCode !== 0) {
-        const msg = data?.responseMessage || "Pago no aprobado por el POS";
+      if (!result || !result.data?.successful || result.data.responseCode !== 0) {
+        const msg = result?.data?.responseMessage || "Pago no aprobado por el POS";
         throw new Error(`Transacción fallida: ${msg}`);
       }
 
@@ -130,15 +118,27 @@ async function continuarConPago(metodoPago) {
     }
   }
 
-  // Mostrar datos en la interfaz
+  // Mostrar datos en interfaz
   parrafoFecha.textContent = fecha;
   parrafoHora.textContent = hora;
-  parrafoTipo.textContent = tipo + ` (${metodoPago})`;
+  parrafoTipo.textContent = `${tipo} (${metodoPago})`;
   parrafoCodigo.textContent = Codigo;
 
   showSpinner();
 
-  await callApi(datos);
+  // Obtener ID del usuario desde el token
+  const token = sessionStorage.getItem('authToken');
+  const jwtPayload = parseJwt(token);
+
+  if (!jwtPayload?.id) {
+    alert('Sesión expirada. Inicia sesión nuevamente.');
+    window.location.href = '/login.html';
+    return;
+  }
+
+  const id_usuario = jwtPayload.id;
+
+  // Registrar movimiento en la base de datos
   await fetch('http://localhost:3000/api/movimientos', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -149,20 +149,21 @@ async function continuarConPago(metodoPago) {
       tipo,
       valor,
       metodoPago,
-      id_caja
+      id_caja,
+      id_usuario
     })
   });
 
+  // Generar y enviar voucher con QR
   QR.makeCode(Codigo);
   await new Promise(resolve => setTimeout(resolve, 500));
 
   const qrCanvas = contenedorQR.querySelector("canvas");
-  let qrBase64 = "";
-  if (qrCanvas) {
-    qrBase64 = qrCanvas.toDataURL("image/png").replace(/^data:image\/png;base64,/, "");
-  }
+  const qrBase64 = qrCanvas
+    ? qrCanvas.toDataURL("image/png").replace(/^data:image\/png;base64,/, "")
+    : "";
 
-  const payload = {
+  const printPayload = {
     Codigo,
     hora,
     fecha,
@@ -173,44 +174,54 @@ async function continuarConPago(metodoPago) {
   const estado = document.createElement("p");
   contenedorQR.appendChild(estado);
 
-  fetch('http://localhost:3000/api/print', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  })
-  .then(async res => {
+  try {
+    const res = await fetch('http://localhost:3000/api/print', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(printPayload)
+    });
+
     const contentType = res.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
+    if (contentType?.includes('application/json')) {
       const data = await res.json();
-      if (!data.success) {
-        throw new Error(data.error || 'Error inesperado');
-      }
+      if (!data.success) throw new Error(data.error || 'Error inesperado');
     } else {
       const text = await res.text();
       throw new Error(`Respuesta no JSON: ${text}`);
     }
-  })
-  .catch(err => {
+  } catch (err) {
     estado.textContent = `❌ Error al imprimir: ${err.message}`;
-  })
-  .finally(() => {
+  } finally {
     hideSpinner();
     if (botonActivo) {
       botonActivo.disabled = false;
       botonActivo.classList.remove("disabled");
       botonActivo = null;
     }
-  });
+  }
 
+  // Registro interno adicional
   addUser(Codigo);
-  setTimeout(() => {
-    addUserAccessLevel(Codigo.substring(0, 6));
-  }, 1000);
+  setTimeout(() => addUserAccessLevel(Codigo.substring(0, 6)), 1000);
 
   document.getElementById("modalPago").style.display = "none";
   datosPendientes = null;
-}
 
+  // Función local para decodificar el JWT
+  function parseJwt(token) {
+    try {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(c =>
+        '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+      ).join(''));
+      return JSON.parse(jsonPayload);
+    } catch (err) {
+      console.error('Token inválido:', err);
+      return null;
+    }
+  }
+}
 
 function generarTokenNumerico() {
   let token = (Math.floor(Math.random() * 9) + 1).toString();
