@@ -19,10 +19,17 @@ async function imprimirTicket({ Codigo, hora, fecha, tipo }) {
     let y = 460;
     const x = 20;
 
+    const fechaObj = new Date(fecha);
+    const dia = String(fechaObj.getDate()).padStart(2, '0');
+    const mes = String(fechaObj.getMonth() + 1).padStart(2, '0');
+    const anio = String(fechaObj.getFullYear());
+    const fechaFormateada = `${dia}-${mes}-${anio}`;
+
+
     const lines = [
       'Ticket de Acceso',
       '-------------------------',
-      `Fecha : ${fecha}`,
+      `Fecha : ${fechaFormateada}`,
       `Hora  : ${hora}`,
       `Tipo  : ${tipo}`,
       `Código: ${Codigo}`
@@ -43,7 +50,7 @@ async function imprimirTicket({ Codigo, hora, fecha, tipo }) {
     const qrHeight = 150;  // alto en puntos
 
     // Cambia este valor para ajustar la distancia desde el borde inferior del texto
-    const qrY = 220; // posición vertical (más bajo = más separación del contenido)
+    const qrY = 200; // posición vertical (más bajo = más separación del contenido)
 
     // Centrar horizontalmente el QR en la página
     const qrX = (210 - qrWidth) / 2;
