@@ -1,8 +1,8 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-const db = require('../../db_config/db.js'); 
+const db = require('../../db_config/db.js');
 
-const SECRET_KEY = 'tu_clave_secreta_super_segura'; // cambia esto en producción
+const SECRET_KEY = 'tu_clave_secreta_super_segura'; // cámbiala en producción
 
 const login = async (req, res) => {
   const { email, password } = req.body;
@@ -13,18 +13,16 @@ const login = async (req, res) => {
   try {
     const [rows] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
 
-    if (rows.length === 0) {
+    if (rows.length === 0)
       return res.status(401).json({ error: 'Credenciales inválidas' });
-    }
 
     const user = rows[0];
 
     const match = await bcrypt.compare(password, user.password);
-    if (!match) {
+    if (!match)
       return res.status(401).json({ error: 'Contraseña incorrecta' });
-    }
 
-    // Crear payload y token
+    // Crear token
     const tokenPayload = {
       id: user.id,
       email: user.email,
@@ -33,7 +31,7 @@ const login = async (req, res) => {
 
     const token = jwt.sign(tokenPayload, SECRET_KEY, { expiresIn: '4h' });
 
-    // Retornar token y datos de usuario (para sessionStorage)
+    // Datos de usuario para el frontend
     const usuario = {
       username: user.username,
       email: user.email,
@@ -48,4 +46,15 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = { login };
+
+const logout = (req, res) => {
+  req.session.destroy(err => {
+    if (err) {
+      return res.status(500).json({ success: false, error: 'Error al cerrar sesión' });
+    }
+    res.clearCookie('connect.sid');
+    return res.json({ success: true });
+  });
+};
+
+module.exports = { login, logout };

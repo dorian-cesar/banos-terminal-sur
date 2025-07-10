@@ -24,9 +24,7 @@ app.use(session({
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'views')));
 
-// rutas de autenticación (login / registro / logout)
-const authRoutes = require('./routes/auth');
-app.use('/', authRoutes);
+app.use('/api', require('./routes/auth'));
 
 
 // Redirección según sesión

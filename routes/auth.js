@@ -2,11 +2,12 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const path = require('path');
 const db = require('../db_config/db.js');
-const { login } = require('../src/controllers/authController');
+const authController = require('../src/controllers/authController');
 
 const router = express.Router();
 
-router.post('/api/login', login);
+router.post('/login', authController.login);
+router.get('/logout', authController.logout);
 
 // Mostrar formulario de registro
 router.get('/registro', (req, res) => {
@@ -31,17 +32,5 @@ router.post('/registro', async (req, res) => {
     res.status(500).send('Error en el servidor');
   }
 });
-
-// Cerrar sesión
-router.get('/logout', (req, res) => {
-  req.session.destroy((err) => {
-    if (err) {
-      return res.status(500).json({ success: false, message: 'Error al cerrar sesión'});
-    }
-    res.clearCookie('connect.sid');
-    res.redirect('/'); 
-  });
-});
-
 
 module.exports = router;
