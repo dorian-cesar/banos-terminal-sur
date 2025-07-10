@@ -1,7 +1,9 @@
 const pool = require('../../db_config/db.js');
+require('dotenv').config(); 
 
 exports.abrirCaja = async (req, res) => {
   const { monto_inicial, observaciones, id_usuario_apertura } = req.body;
+  const ID_CAJA_FIJO = process.env.ID_CAJA; // Obtener el ID desde .env
 
   // Validaciones
   if (!monto_inicial || isNaN(monto_inicial) || parseFloat(monto_inicial) <= 0) {
@@ -12,15 +14,31 @@ exports.abrirCaja = async (req, res) => {
     return res.status(400).json({ success: false, error: 'ID de usuario inválido' });
   }
 
+  // Verificar si ya existe una caja abierta con este ID
+  try {
+    const [cajaExistente] = await pool.execute(
+      'SELECT id FROM caja WHERE id = ? AND estado = "abierta"',
+      [ID_CAJA_FIJO]
+    );
+
+    if (cajaExistente.length > 0) {
+      return res.status(400).json({ success: false, error: 'Ya existe una caja abierta con este ID.' });
+    }
+  } catch (err) {
+    console.error('Error al verificar caja existente:', err);
+    return res.status(500).json({ success: false, error: 'Error al validar la caja.' });
+  }
+
   const fecha = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
   const hora_inicio = new Date().toTimeString().slice(0, 8); // HH:MM:SS
 
   try {
     const [result] = await pool.execute(
       `INSERT INTO caja 
-        (fecha, hora_inicio, monto_inicial, estado, observaciones, fecha_cierre, id_usuario_apertura) 
-       VALUES (?, ?, ?, 'abierta', ?, NULL, ?)`,
+        (id, fecha, hora_inicio, monto_inicial, estado, observaciones, fecha_cierre, id_usuario_apertura) 
+       VALUES (?, ?, ?, ?, 'abierta', ?, NULL, ?)`,
       [
+        ID_CAJA_FIJO, 
         fecha,
         hora_inicio,
         parseFloat(monto_inicial),
@@ -31,7 +49,7 @@ exports.abrirCaja = async (req, res) => {
 
     res.json({
       success: true,
-      id: result.insertId,
+      id: ID_CAJA_FIJO, 
       fecha,
       hora_inicio,
       monto_inicial,

@@ -18,9 +18,9 @@ INSERT INTO users (id, username, email, password, role) VALUES
 (2, 'cajero', 'cajero@wit.la', '$2b$10$i5jGaiV0Eo9Rzn7Hd6blp.9HBBGReEeSg0gPADuof9eoxWE9kqcwK', 'cajero');
 
 
--- Tabla de caja (incluye id_usuario_apertura y cierre)
+-- Tabla de caja
 CREATE TABLE caja (
-  id INT AUTO_INCREMENT PRIMARY KEY,
+  id INT NOT NULL PRIMARY KEY, 
   fecha DATE NOT NULL,
   hora_inicio TIME NOT NULL,
   monto_inicial DECIMAL(10, 2) NOT NULL,
