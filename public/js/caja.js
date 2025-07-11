@@ -1,6 +1,70 @@
+// Función para verificar estado de la caja
+function verificarEstadoCaja() {
+  $.get('/api/caja/estado', function(data) {
+    if (data.success) {
+      if (data.estado === 'abierta') {
+        $('#mensajeCaja').html(`
+          <div class="alert alert-info">
+            Caja ${data.numero_caja} abierta<br>
+            <small>Fecha: ${data.fecha_apertura} ${data.hora_apertura}</small>
+          </div>
+        `);
+        $('#btnAbrirCaja').prop('disabled', true);
+        localStorage.setItem('caja_abierta', 'true');
+      } else {
+        $('#btnAbrirCaja').prop('disabled', false);
+        localStorage.removeItem('caja_abierta');
+      }
+    }
+  }).fail(function() {
+    $('#mensaje').html('<div class="alert alert-danger">Error al verificar estado de caja</div>');
+  });
+}
+
+function registrarMovimiento(datos) {
+  const sesion = localStorage.getItem('sesionActiva');
+  const numero_caja = localStorage.getItem('numero_caja');
+  const id_usuario = obtenerIdUsuario(); // Función que obtiene el ID del usuario logueado
+
+  if (!sesion || !numero_caja || !id_usuario) {
+    mostrarError('Faltan datos de sesión o usuario. Asegúrate de que la caja esté abierta y la sesión activa.');
+    return;
+  }
+
+  return $.ajax({
+    url: '/api/caja/movimiento',
+    type: 'POST',
+    contentType: 'application/json',
+    data: JSON.stringify({
+      codigo: datos.codigo,
+      fecha: new Date().toISOString().split('T')[0], // YYYY-MM-DD
+      hora: new Date().toTimeString().slice(0, 8),    // HH:MM:SS
+      tipo: datos.tipo,
+      valor: datos.valor,
+      metodoPago: datos.metodoPago,
+      numero_caja: parseInt(numero_caja),
+      sesion: parseInt(sesion),
+      id_usuario: id_usuario
+    }),
+    success: function(response) {
+      if (response.success) {
+        console.log('✅ Movimiento registrado:', response.data);
+        // Puedes mostrar mensaje de éxito aquí
+      } else {
+        mostrarError(response.message);
+      }
+    },
+    error: function(xhr) {
+      mostrarError(xhr.responseJSON?.message || '❌ Error al registrar movimiento');
+    }
+  });
+}
+
+
 $(document).ready(function () {
+  verificarEstadoCaja();
   // Función para cargar y mostrar todas las cajas
-  function cargarCajas() {
+  function cargarCaja() {
     $.get('/api/caja/listar', function (data) {
       if (data.success && data.cajas.length > 0) {
         const tbody = $('#tablaCaja tbody');
@@ -12,9 +76,9 @@ $(document).ready(function () {
           
           const row = `
             <tr>
-              <td>${caja.id}</td>
-              <td>${caja.fecha}</td>
-              <td>${caja.hora_inicio || '-'}</td>
+              <td>${caja.numero_caja}</td>
+              <td>${caja.fecha_apertura}</td>
+              <td>${caja.hora_apertura || '-'}</td>
               <td>${caja.hora_cierre || '-'}</td>
               <td>$${parseFloat(caja.monto_inicial).toFixed(2)}</td>
               <td>$${parseFloat(caja.venta_efectivo || 0).toFixed(2)}</td>
@@ -35,10 +99,10 @@ $(document).ready(function () {
   }
 
   // Cargar cajas al iniciar
-  cargarCajas();
+  cargarCaja();
 
   // Botón para actualizar la lista
-  $('#btnActualizar').on('click', cargarCajas);
+  $('#btnActualizar').on('click', cargarCaja);
 
   $('#formInicioCaja').on('submit', function (e) {
     e.preventDefault();
@@ -46,7 +110,7 @@ $(document).ready(function () {
     const monto = $('#monto_inicial_modal').val();
     const observaciones = $('#observaciones_modal').val();
 
-    // Obtener token desde sessionStorage
+    // Obtener token y datos de sesión
     const token = sessionStorage.getItem('authToken');
     const usuarioJSON = sessionStorage.getItem('usuario');
 
@@ -57,7 +121,7 @@ $(document).ready(function () {
       return;
     }
 
-    // Decodificar JWT para obtener el ID de usuario
+    // Función para decodificar el JWT y extraer el ID de usuario
     function parseJwt(token) {
       try {
         const payload = token.split('.')[1];
@@ -84,28 +148,38 @@ $(document).ready(function () {
       return;
     }
 
-    // Enviar datos al backend
+    // Enviar apertura al backend
     $.post('/api/caja/abrir', {
       monto_inicial: monto,
       observaciones: observaciones,
       id_usuario_apertura: id_usuario_apertura
     }, function (res) {
       if (res.success) {
-        localStorage.setItem('id_caja', res.id);
+        // Guardar número de caja y sesión activa
+        localStorage.setItem('numero_caja', res.numero_caja);
+        localStorage.setItem('sesionActiva', res.sesion); // NUEVO
+
         $('#modalInicio').modal('hide');
-        $('#mensaje').html('<div class="alert alert-success">Caja abierta correctamente</div>');
+        $('#mensaje').html(`
+          <div class="alert alert-success">
+            Caja ${res.numero_caja} abierta correctamente<br>
+            <small>Sesión: ${res.sesion} | Fecha: ${res.fecha_apertura} ${res.hora_apertura}</small>
+          </div>
+        `);
+
         $('#btnAbrirCaja').prop('disabled', true);
-        cargarCajas(); // Actualizar tabla
+        cargarCaja(); // Refresca datos en la vista
       } else {
         $('#mensaje').html('<div class="alert alert-danger">' + res.error + '</div>');
       }
     });
   });
 
- $('#btnCerrarCaja').on('click', function () {
-    const id = localStorage.getItem('id_caja');
 
-    if (!id) {
+ $('#btnCerrarCaja').on('click', function () {
+    const numero_caja = localStorage.getItem('numero_caja');
+
+    if (!numero_caja) {
       $('#mensaje').html('<div class="alert alert-warning">No hay caja abierta.</div>');
       return;
     }
@@ -151,15 +225,15 @@ $(document).ready(function () {
       type: 'POST',
       contentType: 'application/json',
       data: JSON.stringify({
-        id_caja: id,
+        numero_caja: numero_caja,
         id_usuario_cierre: id_usuario_cierre
       }),
       success: function (data) {
         if (data.success) {
-          localStorage.removeItem('id_caja');
+          localStorage.removeItem('numero_caja');
           $('#mensaje').html('<div class="alert alert-info">Caja cerrada correctamente</div>');
           $('#btnAbrirCaja').prop('disabled', false);
-          cargarCajas(); // Actualizar la tabla después de cerrar
+          cargarCaja(); // Actualizar la tabla después de cerrar
         } else {
           $('#mensaje').html('<div class="alert alert-danger">' + (data.error || 'Error desconocido') + '</div>');
         }
@@ -225,7 +299,7 @@ $(document).ready(function () {
   });
 
   // Mostrar mensaje si hay caja abierta
-  const id = localStorage.getItem('id_caja');
+  const id = localStorage.getItem('numero_caja');
   if (id) {
     $('#mensajeCaja').html(`<div class="alert alert-info">Hay una caja abierta con ID: ${id}</div>`);
     $('#btnAbrirCaja').prop('disabled', true);

@@ -27,11 +27,11 @@ botonesQR.forEach((btn) => {
   btn.addEventListener("click", (e) => {
     e.preventDefault();
 
-    // Validación de id_caja en localStorage
-    const id_caja = localStorage.getItem('id_caja');
-    if (!id_caja) {
+    // Validación de numero_caja en localStorage
+    const numero_caja = localStorage.getItem('numero_caja');
+    if (!numero_caja) {
         alert('Por favor, primero debe abrir la caja antes de generar un QR.');
-        return; // Detiene la ejecución si no hay id_caja
+        return; // Detiene la ejecución si no hay numero_caja
     }
 
     const fechaHoraAct = new Date();
@@ -47,7 +47,7 @@ botonesQR.forEach((btn) => {
       fecha: fechaStr,
       tipo: tipoStr,
       valor: valor,       
-      id_caja: id_caja     
+      numero_caja: numero_caja     
     };
 
     botonActivo = btn;    
@@ -70,7 +70,13 @@ function cerrarModalPago() {
 async function continuarConPago(metodoPago) {
   if (!datosPendientes) return;
 
-  const { Codigo, hora, fecha, tipo, valor, id_caja } = datosPendientes;
+  const { Codigo, hora, fecha, tipo, valor, numero_caja } = datosPendientes;
+  const sesion = parseInt(localStorage.getItem('sesionActiva')) || null;
+
+  if (!sesion) {
+    alert('No se ha detectado una sesión activa de caja.');
+    return;
+  }
 
   // Validación y pago con tarjeta
   if (metodoPago === "TARJETA") {
@@ -82,10 +88,7 @@ async function continuarConPago(metodoPago) {
       const res = await fetch("http://localhost:8080/api/payment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: monto,
-          ticketNumber: Codigo,
-        }),
+        body: JSON.stringify({ amount: monto, ticketNumber: Codigo }),
       });
 
       const contentType = res.headers.get("content-type");
@@ -138,8 +141,8 @@ async function continuarConPago(metodoPago) {
 
   const id_usuario = jwtPayload.id;
 
-  // Registrar movimiento en la base de datos
-  await fetch('http://localhost:8080/api/movimientos', {
+  // Registrar movimiento en la base de datos (con sesion)
+  await fetch('http://localhost:8080/api/caja/movimiento', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -149,8 +152,9 @@ async function continuarConPago(metodoPago) {
       tipo,
       valor,
       metodoPago,
-      id_caja,
-      id_usuario
+      numero_caja,
+      id_usuario,
+      sesion
     })
   });
 
@@ -163,14 +167,7 @@ async function continuarConPago(metodoPago) {
     ? qrCanvas.toDataURL("image/png").replace(/^data:image\/png;base64,/, "")
     : "";
 
-  const printPayload = {
-    Codigo,
-    hora,
-    fecha,
-    tipo,
-    qrBase64
-  };
-
+  const printPayload = { Codigo, hora, fecha, tipo, qrBase64 };
   const estado = document.createElement("p");
   contenedorQR.appendChild(estado);
 
@@ -200,14 +197,13 @@ async function continuarConPago(metodoPago) {
     }
   }
 
-  // Registro interno adicional
   addUser(Codigo);
   setTimeout(() => addUserAccessLevel(Codigo.substring(0, 6)), 1000);
 
   document.getElementById("modalPago").style.display = "none";
   datosPendientes = null;
 
-  // Función local para decodificar el JWT
+  // Función para decodificar el JWT
   function parseJwt(token) {
     try {
       const base64Url = token.split('.')[1];

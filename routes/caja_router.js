@@ -5,6 +5,10 @@ const cajaController = require('../src/controllers/cajaController');
 // Ruta para abrir caja
 router.post('/api/caja/abrir', cajaController.abrirCaja);
 
+router.get('/api/caja/estado', cajaController.obtenerEstadoCaja);
+
+router.post('/api/caja/movimiento', cajaController.registrarMovimiento);
+
 // Ruta para cerrar caja
 router.post('/api/caja/cerrar', cajaController.cerrarCaja);
 
@@ -12,6 +16,5 @@ router.post('/api/caja/cerrar', cajaController.cerrarCaja);
 router.get('/api/caja/listar', cajaController.listarCajas);
 
 router.post('/api/caja/arqueo-diario', cajaController.registrarArqueoDiario);
-
 
 module.exports = router;
