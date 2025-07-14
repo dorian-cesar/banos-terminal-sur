@@ -15,6 +15,11 @@ router.post('/api/caja/cerrar', cajaController.cerrarCaja);
 // Ruta para listar cajas
 router.get('/api/caja/listar', cajaController.listarCajas);
 
+router.get('/api/caja/usuario/:id_usuario', cajaController.listarCajasUsuario);
+
+router.get('/api/caja/abierta/:id_usuario', cajaController.obtenerCajaAbiertaUsuario);
+
+
 router.post('/api/caja/arqueo-diario', cajaController.registrarArqueoDiario);
 
 module.exports = router;

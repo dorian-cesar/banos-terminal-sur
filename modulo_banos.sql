@@ -1,5 +1,4 @@
-CREATE DATABASE IF NOT EXISTS modulo_banos;
-USE modulo_banos;
+USE terminales;
 
 -- Tabla de usuarios
 CREATE TABLE users (
@@ -17,7 +16,8 @@ CREATE TABLE users (
 -- Usuario por defecto
 INSERT INTO users (id, username, email, password, role) VALUES
 (1, 'admin', 'admin@wit.la', '$2b$10$i5jGaiV0Eo9Rzn7Hd6blp.9HBBGReEeSg0gPADuof9eoxWE9kqcwK', 'admin'),
-(2, 'cajero', 'cajero@wit.la', '$2b$10$i5jGaiV0Eo9Rzn7Hd6blp.9HBBGReEeSg0gPADuof9eoxWE9kqcwK', 'cajero');
+(2, 'cajero1', 'cajero1@wit.la', '$2b$10$i5jGaiV0Eo9Rzn7Hd6blp.9HBBGReEeSg0gPADuof9eoxWE9kqcwK', 'cajero'),
+(3, 'cajero2', 'cajero2@wit.la', '$2b$10$i5jGaiV0Eo9Rzn7Hd6blp.9HBBGReEeSg0gPADuof9eoxWE9kqcwK', 'cajero');
 
 -- Tabla de caja
 CREATE TABLE caja (

@@ -83,7 +83,7 @@
     <button class="btn" id="btnCerrarCaja">Cerrar Caja</button>
     <button class="btn" id="btnArqueo">Arqueo de Cajas</button>
     <button class="btn" id="btnImprimir">Imprimir Resumen</button>
-    <button class="btn" id="btnActualizar">Actualizar Lista</button>
+    <button class="btn" id="btnActualizar">Actualizar Caja Abierta</button>
     <button class="btn" id="btnVolver">Volver</button>
   </aside>
 
@@ -98,13 +98,13 @@
     </div>
 
     <!-- Tabla -->
-    <div class="table-card mb-4">
-      <div class="table-card-header">Historial de Cajas</div>
+    <div class="table-card mb-4">      
+      <div id="headerCajaAbierta" class="table-card-header">Caja</div>
       <div class="table-responsive">
         <table class="table table-hover table-striped align-middle mb-0" id="tablaCaja">
           <thead class="table-light text-center">
             <tr>
-              <th>ID</th>
+              <th>Nº Caja</th>
               <th>Fecha Apertura</th>
               <th>Hora Inicio</th>
               <th>Hora Cierre</th>

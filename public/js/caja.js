@@ -55,49 +55,167 @@ function registrarMovimiento(datos) {
   });
 }
 
+function parseJwt(token) {
+  try {
+    const payload = token.split('.')[1];
+    return JSON.parse(atob(payload));
+  } catch (e) { return null; }
+}
+
+function cargarCajaAbierta() {
+  const token = sessionStorage.getItem('authToken');
+  if (!token) {
+    $('#mensaje').html('<div class="alert alert-danger">Sesión expirada. Inicia sesión.</div>');
+    window.location.href = '/login.html';
+    return;
+  }
+
+  const usuario = parseJwt(token);
+  if (!usuario?.id) {
+    $('#mensaje').html('<div class="alert alert-danger">Token inválido.</div>');
+    window.location.href = '/login.html';
+    return;
+  }
+
+  $.get(`/api/caja/abierta/${usuario.id}`, function (res) {
+    const tbody = $('#tablaCaja tbody');
+    tbody.empty();
+
+    if (res.success && res.data) {
+      const c = res.data;
+      const totalEfectivo = parseFloat(c.monto_inicial) + parseFloat(c.venta_efectivo);
+
+      const row = `
+        <tr>
+          <td>${c.numero_caja}</td>
+          <td>${c.fecha_apertura}</td>
+          <td>${c.hora_apertura}</td>
+          <td>-</td>
+          <td>$${parseFloat(c.monto_inicial).toFixed(2)}</td>
+          <td>$${c.venta_efectivo.toFixed(2)}</td>
+          <td>$${c.venta_tarjeta.toFixed(2)}</td>
+          <td>$${totalEfectivo.toFixed(2)}</td>
+          <td>${c.estado}</td>
+          <td>${c.observaciones || '-'}</td>
+        </tr>`;
+      tbody.append(row);
+    } else {
+      tbody.html('<tr><td colspan="10" class="text-center">No hay caja abierta para este usuario</td></tr>');
+    }
+  }).fail(() => {
+    $('#mensaje').html('<div class="alert alert-danger">Error al consultar caja abierta</div>');
+  });
+}
+
+function cargarCajasUsuario() {
+  const token = sessionStorage.getItem('authToken');
+  if (!token) {
+    $('#mensaje').html('<div class="alert alert-danger">Sesión no válida. Inicia sesión nuevamente.</div>');
+    return;
+  }
+
+  // Extraer ID desde el token JWT
+  let id_usuario;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    id_usuario = payload.id;
+  } catch (err) {
+    $('#mensaje').html('<div class="alert alert-danger">Token inválido. Vuelve a iniciar sesión.</div>');
+    return;
+  }
+
+  if (!id_usuario || isNaN(id_usuario)) {
+    $('#mensaje').html('<div class="alert alert-danger">ID de usuario inválido.</div>');
+    return;
+  }
+
+  $.get(`/api/caja/usuario/${id_usuario}`, function (res) {
+    if (res.success) {
+      const cajas = res.data;
+
+      if (!cajas || cajas.length === 0) {
+        $('#tablaCaja tbody').html('<tr><td colspan="10" class="text-center">No hay cajas registradas para este usuario</td></tr>');
+        return;
+      }
+
+      const tbody = $('#tablaCaja tbody');
+      tbody.empty();
+
+      cajas.forEach(caja => {
+        const totalEfectivo = parseFloat(caja.monto_inicial) + parseFloat(caja.venta_efectivo || 0);
+
+        const row = `
+          <tr>
+            <td>${caja.numero_caja}</td>
+            <td>${caja.fecha_apertura}</td>
+            <td>${caja.hora_apertura || '-'}</td>
+            <td>${caja.hora_cierre || '-'}</td>
+            <td>$${parseFloat(caja.monto_inicial).toFixed(2)}</td>
+            <td>$${parseFloat(caja.venta_efectivo || 0).toFixed(2)}</td>
+            <td>$${parseFloat(caja.venta_tarjeta || 0).toFixed(2)}</td>
+            <td>$${totalEfectivo.toFixed(2)}</td>
+            <td>${caja.estado}</td>
+            <td>${caja.observaciones || '-'}</td>
+          </tr>
+        `;
+        tbody.append(row);
+      });
+
+    } else {
+      $('#mensaje').html(`<div class="alert alert-danger">${res.error || 'Error al obtener las cajas del usuario.'}</div>`);
+    }
+  }).fail(function (xhr) {
+    const mensaje = xhr?.responseJSON?.error || 'Error inesperado al cargar las cajas del usuario';
+    $('#mensaje').html(`<div class="alert alert-danger">${mensaje}</div>`);
+  });
+}
+
+$(document).ready(() => {
+  cargarCajaAbierta();
+});
 
 $(document).ready(function () {
   verificarEstadoCaja();
   // Función para cargar y mostrar todas las cajas
-  function cargarCaja() {
-    $.get('/api/caja/listar', function (data) {
-      if (data.success && data.data.length > 0) {
-        const tbody = $('#tablaCaja tbody');
-        tbody.empty();
+  // function cargarCaja() {
+  //   $.get('/api/caja/listar', function (data) {
+  //     if (data.success && data.data.length > 0) {
+  //       const tbody = $('#tablaCaja tbody');
+  //       tbody.empty();
 
-        data.data.forEach(caja => {
-          const totalEfectivo = parseFloat(caja.monto_inicial) + parseFloat(caja.venta_efectivo || 0);
+  //       data.data.forEach(caja => {
+  //         const totalEfectivo = parseFloat(caja.monto_inicial) + parseFloat(caja.venta_efectivo || 0);
 
-          const row = `
-            <tr>
-              <td>${caja.numero_caja}</td>
-              <td>${caja.fecha_apertura}</td>
-              <td>${caja.hora_apertura || '-'}</td>
-              <td>${caja.hora_cierre || '-'}</td>
-              <td>$${parseFloat(caja.monto_inicial).toFixed(2)}</td>
-              <td>$${parseFloat(caja.venta_efectivo || 0).toFixed(2)}</td>
-              <td>$${parseFloat(caja.venta_tarjeta || 0).toFixed(2)}</td>
-              <td>$${totalEfectivo.toFixed(2)}</td>
-              <td>${caja.estado}</td>
-              <td>${caja.observaciones || '-'}</td>
-            </tr>
-          `;
-          tbody.append(row);
-        });
+  //         const row = `
+  //           <tr>
+  //             <td>${caja.numero_caja}</td>
+  //             <td>${caja.fecha_apertura}</td>
+  //             <td>${caja.hora_apertura || '-'}</td>
+  //             <td>${caja.hora_cierre || '-'}</td>
+  //             <td>$${parseFloat(caja.monto_inicial).toFixed(2)}</td>
+  //             <td>$${parseFloat(caja.venta_efectivo || 0).toFixed(2)}</td>
+  //             <td>$${parseFloat(caja.venta_tarjeta || 0).toFixed(2)}</td>
+  //             <td>$${totalEfectivo.toFixed(2)}</td>
+  //             <td>${caja.estado}</td>
+  //             <td>${caja.observaciones || '-'}</td>
+  //           </tr>
+  //         `;
+  //         tbody.append(row);
+  //       });
 
-      } else {
-        $('#tablaCaja tbody').html('<tr><td colspan="10" class="text-center">No hay registros de caja</td></tr>');
-      }
-    }).fail(function () {
-      $('#mensaje').html('<div class="alert alert-danger">Error al cargar los registros de caja</div>');
-    });
-  }
+  //     } else {
+  //       $('#tablaCaja tbody').html('<tr><td colspan="10" class="text-center">No hay registros de caja</td></tr>');
+  //     }
+  //   }).fail(function () {
+  //     $('#mensaje').html('<div class="alert alert-danger">Error al cargar los registros de caja</div>');
+  //   });
+  // }
 
   // Cargar cajas al iniciar
-  cargarCaja();
+  cargarCajaAbierta();
 
-  // Botón para actualizar la lista
-  $('#btnActualizar').on('click', cargarCaja);
+  // Botón para actualizar la caja abierta
+  $('#btnActualizar').on('click', cargarCajaAbierta);
 
   $('#formInicioCaja').on('submit', function (e) {
     e.preventDefault();
@@ -105,7 +223,6 @@ $(document).ready(function () {
     const monto = $('#monto_inicial_modal').val();
     const observaciones = $('#observaciones_modal').val();
 
-    // Obtener token y datos de sesión
     const token = sessionStorage.getItem('authToken');
     const usuarioJSON = sessionStorage.getItem('usuario');
 
@@ -116,60 +233,57 @@ $(document).ready(function () {
       return;
     }
 
-    // Función para decodificar el JWT y extraer el ID de usuario
     function parseJwt(token) {
       try {
         const payload = token.split('.')[1];
-        const decoded = JSON.parse(atob(payload));
-        return decoded;
+        return JSON.parse(atob(payload));
       } catch (err) {
         return null;
       }
     }
 
     const payload = parseJwt(token);
-    if (!payload || !payload.id) {
+    const id_usuario_apertura = payload?.id;
+
+    if (!id_usuario_apertura || isNaN(id_usuario_apertura)) {
       alert('Token inválido. Vuelve a iniciar sesión.');
       sessionStorage.clear();
       window.location.href = '/login.html';
       return;
     }
 
-    const id_usuario_apertura = payload.id;
-
-    // Validar monto
     if (!monto || isNaN(monto) || parseFloat(monto) <= 0) {
       $('#mensaje').html('<div class="alert alert-danger">El monto inicial debe ser un número mayor a 0.</div>');
       return;
     }
 
-    // Enviar apertura al backend
     $.post('/api/caja/abrir', {
       monto_inicial: monto,
       observaciones: observaciones,
       id_usuario_apertura: id_usuario_apertura
-    }, function (res) {
-      if (res.success) {
-        // Guardar número de caja y sesión activa
+    })
+      .done(function (res) {
         localStorage.setItem('numero_caja', res.numero_caja);
-        localStorage.setItem('sesionActiva', res.sesion); // NUEVO
+        localStorage.setItem('sesionActiva', res.sesion);
 
         $('#modalInicio').modal('hide');
         $('#mensaje').html(`
           <div class="alert alert-success">
-            Caja ${res.numero_caja} abierta correctamente<br>
-            <small>Sesión: ${res.sesion} | Fecha: ${res.fecha_apertura} ${res.hora_apertura}</small>
+            Caja abierta correctamente<br>            
           </div>
         `);
-
         $('#btnAbrirCaja').prop('disabled', true);
-        cargarCaja(); // Refresca datos en la vista
-      } else {
-        $('#mensaje').html('<div class="alert alert-danger">' + res.error + '</div>');
-      }
-    });
+        cargarCajaAbierta();
+      })
+      .fail(function (xhr) {
+        const msg = xhr.responseJSON?.error || 'Error al abrir caja';
+        if (msg === 'Ya existe una caja abierta con este número') {
+          alert('⚠️ Esta caja ya está abierta. Cierre la sesión anterior antes de abrir una nueva.');
+        } else {
+          $('#mensaje').html('<div class="alert alert-danger">' + msg + '</div>');
+        }
+      });
   });
-
 
  $('#btnCerrarCaja').on('click', function () {
     const numero_caja = localStorage.getItem('numero_caja');
@@ -228,7 +342,7 @@ $(document).ready(function () {
           localStorage.removeItem('numero_caja');
           $('#mensaje').html('<div class="alert alert-info">Caja cerrada correctamente</div>');
           $('#btnAbrirCaja').prop('disabled', false);
-          cargarCaja(); // Actualizar la tabla después de cerrar
+          cargarCajasUsuario(); // Actualizar la tabla después de cerrar
         } else {
           $('#mensaje').html('<div class="alert alert-danger">' + (data.error || 'Error desconocido') + '</div>');
         }
@@ -294,13 +408,7 @@ $(document).ready(function () {
     $('#resumenCaja').hide();
   });
 
-  // Mostrar mensaje si hay caja abierta
-  const id = localStorage.getItem('numero_caja');
-  if (id) {
-    $('#mensajeCaja').html(`<div class="alert alert-info">Hay una caja abierta con ID: ${id}</div>`);
-    $('#btnAbrirCaja').prop('disabled', true);
-  }
-  
+   
   document.getElementById('btnVolver').addEventListener('click', () => {
     window.location.href = '/home.html';
   });

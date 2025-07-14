@@ -3,7 +3,7 @@ require('dotenv').config();
 
 exports.abrirCaja = async (req, res) => {
   const { monto_inicial, observaciones, id_usuario_apertura } = req.body;
-  const numero_caja = parseInt(process.env.numero_caja);
+  const numero_caja = parseInt(process.env.NUMERO_CAJA);
 
   // Validaciones
   if (!monto_inicial || isNaN(monto_inicial) || parseFloat(monto_inicial) <= 0) {
@@ -78,7 +78,7 @@ exports.abrirCaja = async (req, res) => {
 };
 
 exports.obtenerEstadoCaja = async (req, res) => {
-  const numero_caja = parseInt(process.env.numero_caja);
+  const numero_caja = parseInt(process.env.NUMERO_CAJA);
   
   try {
     const [caja] = await pool.execute(
@@ -168,7 +168,7 @@ exports.registrarMovimiento = async (req, res) => {
     // Obtener la caja abierta
     const [cajaAbierta] = await pool.execute(
       'SELECT sesion FROM caja WHERE estado = "abierta" AND numero_caja = ? LIMIT 1',
-      [process.env.numero_caja]
+      [process.env.NUMERO_CAJA]
     );
 
     if (cajaAbierta.length === 0) {
@@ -212,7 +212,7 @@ exports.registrarMovimiento = async (req, res) => {
 
 exports.cerrarCaja = async (req, res) => {
   const { id_usuario_cierre, observaciones } = req.body;
-  const numero_caja = parseInt(process.env.numero_caja);
+  const numero_caja = parseInt(process.env.NUMERO_CAJA);
 
   if (!id_usuario_cierre || isNaN(id_usuario_cierre)) {
     return res.status(400).json({ 
@@ -295,7 +295,7 @@ exports.cerrarCaja = async (req, res) => {
 };
 
 exports.listarCajas = async (req, res) => {
-  const numero_caja = parseInt(process.env.numero_caja);
+  const numero_caja = parseInt(process.env.NUMERO_CAJA);
   
   try {
     // Obtener todas las sesiones de la caja
@@ -349,6 +349,133 @@ exports.listarCajas = async (req, res) => {
     });
   }
 };
+
+// GET  /api/caja/abierta/:id_usuario
+exports.obtenerCajaAbiertaUsuario = async (req, res) => {
+  const id_usuario = parseInt(req.params.id_usuario, 10);
+  const numero_caja = parseInt(process.env.NUMERO_CAJA, 10);
+
+  if (!id_usuario || isNaN(id_usuario)) {
+    return res.status(400).json({ success: false, error: 'ID de usuario inválido' });
+  }
+
+  try {
+    // Caja abierta del usuario (si existe)
+    const [cajas] = await pool.execute(
+      `SELECT
+         sesion,
+         numero_caja,
+         fecha_apertura,
+         hora_apertura,
+         monto_inicial,
+         estado,
+         observaciones
+       FROM caja
+       WHERE numero_caja = ? AND id_usuario_apertura = ? AND estado = 'abierta'
+       ORDER BY sesion DESC
+       LIMIT 1`,
+      [numero_caja, id_usuario]
+    );
+
+    if (cajas.length === 0) {
+      return res.json({ success: true, data: null, mensaje: 'El usuario no tiene caja abierta' });
+    }
+
+    const caja = cajas[0];
+
+    // Totales en tiempo real
+    const [totales] = await pool.execute(
+      `SELECT 
+         COALESCE(SUM(CASE WHEN metodoPago = 'EFECTIVO' THEN valor END),0) AS venta_efectivo,
+         COALESCE(SUM(CASE WHEN metodoPago = 'TARJETA'  THEN valor END),0) AS venta_tarjeta
+       FROM movimientos
+       WHERE sesion = ?`,
+      [caja.sesion]
+    );
+
+    res.json({
+      success: true,
+      data: {
+        ...caja,
+        venta_efectivo: parseFloat(totales[0].venta_efectivo),
+        venta_tarjeta: parseFloat(totales[0].venta_tarjeta),
+        total_general:
+          parseFloat(totales[0].venta_efectivo) + parseFloat(totales[0].venta_tarjeta)
+      }
+    });
+  } catch (err) {
+    console.error('Error al obtener caja abierta:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Error interno al consultar caja abierta',
+      detalle: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+};
+
+// GET /api/caja/usuario/:id_usuario
+exports.listarCajasUsuario = async (req, res) => {
+  const id_usuario = parseInt(req.params.id_usuario, 10);
+  const numero_caja = parseInt(process.env.NUMERO_CAJA, 10);
+
+  if (!id_usuario || isNaN(id_usuario)) {
+    return res.status(400).json({ success: false, error: 'ID de usuario inválido' });
+  }
+
+  try {
+    // Buscar todas las cajas (abiertas y cerradas) del usuario
+    const [cajas] = await pool.execute(
+      `SELECT 
+         sesion,
+         numero_caja,
+         fecha_apertura,
+         hora_apertura,
+         fecha_cierre,
+         hora_cierre,
+         monto_inicial,
+         estado,
+         observaciones
+       FROM caja
+       WHERE numero_caja = ? AND id_usuario_apertura = ?
+       ORDER BY sesion DESC`,
+      [numero_caja, id_usuario]
+    );
+
+    // Agregar totales a cada caja
+    const cajasConTotales = await Promise.all(cajas.map(async (caja) => {
+      const [totales] = await pool.execute(
+        `SELECT 
+           SUM(CASE WHEN metodoPago = 'EFECTIVO' THEN valor ELSE 0 END) AS venta_efectivo,
+           SUM(CASE WHEN metodoPago = 'TARJETA' THEN valor ELSE 0 END) AS venta_tarjeta
+         FROM movimientos
+         WHERE sesion = ?`,
+        [caja.sesion]
+      );
+
+      return {
+        ...caja,
+        venta_efectivo: parseFloat(totales[0]?.venta_efectivo || 0),
+        venta_tarjeta: parseFloat(totales[0]?.venta_tarjeta || 0),
+        total_general:
+          parseFloat(totales[0]?.venta_efectivo || 0) + parseFloat(totales[0]?.venta_tarjeta || 0)
+      };
+    }));
+
+    res.json({
+      success: true,
+      data: cajasConTotales
+    });
+
+  } catch (err) {
+    console.error('Error al listar cajas por usuario:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Error interno al obtener las cajas del usuario',
+      detalle: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+};
+
 
 exports.registrarArqueoDiario = async (req, res) => {
   const { creado_por } = req.body;
