@@ -1,5 +1,5 @@
 const pool = require('../../db_config/db.js');
-require('dotenv').config(); 
+require('dotenv').config();
 
 exports.abrirCaja = async (req, res) => {
   const { monto_inicial, observaciones, id_usuario_apertura } = req.body;
@@ -20,68 +20,51 @@ exports.abrirCaja = async (req, res) => {
     });
   }
 
-  const fecha_apertura = new Date().toISOString().slice(0, 10);
-  const hora_apertura = new Date().toTimeString().slice(0, 8);
-
   try {
-    // Verificar si ya está abierta
-    const [abierta] = await pool.execute(
-      `SELECT estado, sesion FROM caja WHERE numero_caja = ?`,
+    // Verificar si ya existe una caja abierta
+    const [cajaAbierta] = await pool.execute(
+      `SELECT COUNT(*) as count FROM caja WHERE numero_caja = ? AND estado = 'abierta'`,
       [numero_caja]
     );
 
-    if (abierta.length === 0) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'La caja física no está registrada en el sistema.' 
-      });
-    }
-
-    if (abierta[0].estado === 'abierta') {
+    if (cajaAbierta[0].count > 0) {
       return res.status(400).json({ 
         success: false, 
-        error: 'La caja ya está abierta.' 
+        error: 'Ya existe una caja abierta con este número' 
       });
     }
 
-    const nueva_sesion = abierta[0].sesion + 1;
-
-    // Actualizar los datos de la caja y nueva sesión
-    const [updateResult] = await pool.execute(
-      `UPDATE caja
-       SET sesion = ?,
-           estado = 'abierta',
-           fecha_apertura = ?,
-           hora_apertura = ?,
-           monto_inicial = ?,
-           observaciones = ?,
-           id_usuario_apertura = ?,
-           fecha_cierre = NULL,
-           hora_cierre = NULL,
-           id_usuario_cierre = NULL,
-           venta_efectivo = 0,
-           venta_tarjeta = 0
-       WHERE numero_caja = ?`,
-      [
-        nueva_sesion,
-        fecha_apertura,
-        hora_apertura,
-        parseFloat(monto_inicial),
-        observaciones || null,
+    // Insertar nueva sesión de caja
+    const [result] = await pool.execute(
+      `INSERT INTO caja (
+        numero_caja, 
+        fecha_apertura, 
+        hora_apertura, 
+        monto_inicial, 
+        estado, 
         id_usuario_apertura,
-        numero_caja
-      ]
+        observaciones
+      ) VALUES (?, CURRENT_DATE(), CURRENT_TIME(), ?, 'abierta', ?, ?)`,
+      [numero_caja, parseFloat(monto_inicial), id_usuario_apertura, observaciones || null]
+    );
+
+    // Obtener datos de la caja recién abierta
+    const [nuevaCaja] = await pool.execute(
+      `SELECT * FROM caja WHERE sesion = ?`,
+      [result.insertId]
     );
 
     res.json({
       success: true,
-      numero_caja,
-      sesion: nueva_sesion,
-      fecha_apertura,
-      hora_apertura,
-      monto_inicial: parseFloat(monto_inicial),
-      estado: 'abierta',
-      observaciones: observaciones || null
+      data: {
+        numero_caja: nuevaCaja[0].numero_caja,
+        sesion: nuevaCaja[0].sesion,
+        fecha_apertura: nuevaCaja[0].fecha_apertura,
+        hora_apertura: nuevaCaja[0].hora_apertura,
+        monto_inicial: nuevaCaja[0].monto_inicial,
+        estado: nuevaCaja[0].estado,
+        observaciones: nuevaCaja[0].observaciones
+      }
     });
 
   } catch (err) {
@@ -94,21 +77,25 @@ exports.abrirCaja = async (req, res) => {
   }
 };
 
-
 exports.obtenerEstadoCaja = async (req, res) => {
   const numero_caja = parseInt(process.env.numero_caja);
   
   try {
     const [caja] = await pool.execute(
       `SELECT 
+        sesion,
         numero_caja,
         estado,
         fecha_apertura,
         hora_apertura,
         monto_inicial,
+        venta_efectivo,
+        venta_tarjeta,
         observaciones
        FROM caja 
-       WHERE numero_caja = ?`,
+       WHERE numero_caja = ?
+       ORDER BY sesion DESC
+       LIMIT 1`,
       [numero_caja]
     );
 
@@ -121,42 +108,50 @@ exports.obtenerEstadoCaja = async (req, res) => {
       });
     }
 
+    // Obtener totales de movimientos si la caja está abierta
+    let totales = { venta_efectivo: 0, venta_tarjeta: 0 };
+    if (caja[0].estado === 'abierta') {
+      const [movimientos] = await pool.execute(
+        `SELECT 
+          SUM(CASE WHEN metodoPago = 'EFECTIVO' THEN valor ELSE 0 END) AS venta_efectivo,
+          SUM(CASE WHEN metodoPago = 'TARJETA' THEN valor ELSE 0 END) AS venta_tarjeta
+         FROM movimientos 
+         WHERE sesion = ?`,
+        [caja[0].sesion]
+      );
+      totales = movimientos[0];
+    }
+
     res.json({
       success: true,
-      numero_caja: caja[0].numero_caja,
-      estado: caja[0].estado,
-      fecha_apertura: caja[0].fecha_apertura,
-      hora_apertura: caja[0].hora_apertura,
-      monto_inicial: caja[0].monto_inicial,
-      observaciones: caja[0].observaciones
+      data: {
+        numero_caja: caja[0].numero_caja,
+        sesion: caja[0].sesion,
+        estado: caja[0].estado,
+        fecha_apertura: caja[0].fecha_apertura,
+        hora_apertura: caja[0].hora_apertura,
+        monto_inicial: caja[0].monto_inicial,
+        venta_efectivo: caja[0].venta_efectivo || totales.venta_efectivo,
+        venta_tarjeta: caja[0].venta_tarjeta || totales.venta_tarjeta,
+        observaciones: caja[0].observaciones
+      }
     });
   } catch (error) {
     console.error('Error al obtener estado de caja:', error);
-    res.status(500).json({ success: false, error: 'Error al consultar estado de caja' });
+    res.status(500).json({ 
+      success: false, 
+      error: 'Error al consultar estado de caja',
+      detalle: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
-
 exports.registrarMovimiento = async (req, res) => {
   try {
-    const { codigo, fecha, hora, tipo, valor, metodoPago, id_usuario, sesion } = req.body;
+    const { codigo, tipo, valor, metodoPago, id_usuario } = req.body;
     
-    // Obtener el número de caja abierta desde la tabla caja
-    const [cajaAbierta] = await pool.execute(
-      'SELECT numero_caja FROM caja WHERE estado = "abierta" LIMIT 1'
-    );
-
-    if (cajaAbierta.length === 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'No hay ninguna caja abierta para registrar movimientos' 
-      });
-    }
-
-    const numeroCajaAbierta = cajaAbierta[0].numero_caja;
-
     // Validaciones básicas
-    if (!codigo || !fecha || !hora || !tipo || !valor || !metodoPago || !id_usuario || !sesion) {
+    if (!codigo || !tipo || !valor || !metodoPago || !id_usuario) {
       return res.status(400).json({ 
         success: false, 
         message: 'Faltan datos requeridos' 
@@ -170,12 +165,27 @@ exports.registrarMovimiento = async (req, res) => {
       });
     }
 
+    // Obtener la caja abierta
+    const [cajaAbierta] = await pool.execute(
+      'SELECT sesion FROM caja WHERE estado = "abierta" AND numero_caja = ? LIMIT 1',
+      [process.env.numero_caja]
+    );
+
+    if (cajaAbierta.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'No hay ninguna caja abierta para registrar movimientos' 
+      });
+    }
+
+    const sesion = cajaAbierta[0].sesion;
+
     // Registrar movimiento
     const [result] = await pool.execute(
       `INSERT INTO movimientos (
-        codigo, fecha, hora, tipo, valor, metodoPago, numero_caja, id_usuario, sesion
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [codigo, fecha, hora, tipo, valor, metodoPago, numeroCajaAbierta, id_usuario, sesion]
+        codigo, fecha, hora, tipo, valor, metodoPago, sesion, id_usuario
+      ) VALUES (?, CURRENT_DATE(), CURRENT_TIME(), ?, ?, ?, ?, ?)`,
+      [codigo, tipo, valor, metodoPago, sesion, id_usuario]
     );
 
     res.json({ 
@@ -183,10 +193,10 @@ exports.registrarMovimiento = async (req, res) => {
       message: 'Movimiento registrado', 
       data: {
         id: result.insertId,
-        numero_caja: numeroCajaAbierta,
+        sesion,
         codigo,
-        fecha,
-        hora
+        fecha: new Date().toISOString().slice(0, 10),
+        hora: new Date().toTimeString().slice(0, 8)
       }
     });
 
@@ -200,16 +210,9 @@ exports.registrarMovimiento = async (req, res) => {
   }
 };
 
-
 exports.cerrarCaja = async (req, res) => {
-  const { numero_caja, id_usuario_cierre } = req.body;
-
-  if (!numero_caja || isNaN(numero_caja)) {
-    return res.status(400).json({ 
-      success: false, 
-      error: 'Número de caja inválido' 
-    });
-  }
+  const { id_usuario_cierre, observaciones } = req.body;
+  const numero_caja = parseInt(process.env.numero_caja);
 
   if (!id_usuario_cierre || isNaN(id_usuario_cierre)) {
     return res.status(400).json({ 
@@ -218,82 +221,66 @@ exports.cerrarCaja = async (req, res) => {
     });
   }
 
-  const fecha_cierre = new Date().toISOString().slice(0, 10);
-  const hora_cierre = new Date().toTimeString().slice(0, 8);
-
   try {
-    // 🟨 Obtener la sesión actual de la caja abierta
+    // Obtener la sesión actual de la caja abierta
     const [cajaAbierta] = await pool.execute(
-      `SELECT sesion FROM caja WHERE numero_caja = ? AND estado = 'abierta'`,
+      `SELECT sesion FROM caja WHERE numero_caja = ? AND estado = 'abierta' LIMIT 1`,
       [numero_caja]
     );
 
     if (cajaAbierta.length === 0) {
       return res.status(400).json({ 
         success: false, 
-        error: 'No hay caja abierta para este número' 
+        error: 'No hay caja abierta para cerrar' 
       });
     }
 
     const sesion = cajaAbierta[0].sesion;
 
-    // 🟩 Obtener totales de movimientos para esta sesión
+    // Calcular totales de movimientos
     const [movimientos] = await pool.execute(
       `SELECT 
-         SUM(CASE WHEN metodoPago = 'EFECTIVO' THEN valor ELSE 0 END) AS total_efectivo,
-         SUM(CASE WHEN metodoPago = 'TARJETA' THEN valor ELSE 0 END) AS total_tarjeta
+        SUM(CASE WHEN metodoPago = 'EFECTIVO' THEN valor ELSE 0 END) AS total_efectivo,
+        SUM(CASE WHEN metodoPago = 'TARJETA' THEN valor ELSE 0 END) AS total_tarjeta
        FROM movimientos 
-       WHERE numero_caja = ? AND sesion = ?`,
-      [numero_caja, sesion]
+       WHERE sesion = ?`,
+      [sesion]
     );
 
     const venta_efectivo = parseFloat(movimientos[0].total_efectivo || 0);
     const venta_tarjeta = parseFloat(movimientos[0].total_tarjeta || 0);
 
-    // 🟦 Insertar en cierres_diarios incluyendo sesion
+    // Actualizar caja (el trigger calculará los totales)
+    await pool.execute(
+      `UPDATE caja SET
+        estado = 'cerrada',
+        hora_cierre = CURRENT_TIME(),
+        fecha_cierre = CURRENT_DATE(),
+        id_usuario_cierre = ?,
+        observaciones = ?
+       WHERE sesion = ?`,
+      [id_usuario_cierre, observaciones || null, sesion]
+    );
+
+    // Registrar cierre diario
     await pool.execute(
       `INSERT INTO cierres_diarios (
-         numero_caja, sesion, fecha, hora_cierre, venta_efectivo, venta_tarjeta, id_usuario
-       ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [numero_caja, sesion, fecha_cierre, hora_cierre, venta_efectivo, venta_tarjeta, id_usuario_cierre]
+        sesion, fecha, hora_cierre, venta_efectivo, venta_tarjeta, id_usuario
+      ) VALUES (?, CURRENT_DATE(), CURRENT_TIME(), ?, ?, ?)`,
+      [sesion, venta_efectivo, venta_tarjeta, id_usuario_cierre]
     );
-
-    // 🟥 Limpiar datos de la fila en tabla caja
-    const [updateResult] = await pool.execute(
-      `UPDATE caja
-       SET estado = 'cerrada',
-           fecha_apertura = NULL,
-           hora_apertura = NULL,
-           hora_cierre = NULL,
-           fecha_cierre = NULL,
-           monto_inicial = 0,
-           venta_efectivo = 0,
-           venta_tarjeta = 0,
-           observaciones = NULL,
-           id_usuario_apertura = NULL,
-           id_usuario_cierre = NULL
-       WHERE numero_caja = ?`,
-      [numero_caja]
-    );
-
-    if (updateResult.affectedRows === 0) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'La caja no existe o ya fue limpiada' 
-      });
-    }
 
     res.json({
       success: true,
-      message: 'Caja cerrada correctamente y datos limpiados',
-      cierre: {
+      message: 'Caja cerrada correctamente',
+      data: {
         numero_caja,
         sesion,
-        id_usuario_cierre,
-        fecha_cierre,
-        hora_cierre,
+        fecha_cierre: new Date().toISOString().slice(0, 10),
+        hora_cierre: new Date().toTimeString().slice(0, 8),
         venta_efectivo,
-        venta_tarjeta
+        venta_tarjeta,
+        total_general: venta_efectivo + venta_tarjeta
       }
     });
 
@@ -308,81 +295,57 @@ exports.cerrarCaja = async (req, res) => {
 };
 
 exports.listarCajas = async (req, res) => {
+  const numero_caja = parseInt(process.env.numero_caja);
+  
   try {
-    // Obtener el número de caja desde las variables de entorno
-    const numeroCajaDeseada = process.env.numero_caja;
-    
-    // Validar que exista el número de caja en el .env
-    if (!numeroCajaDeseada) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'No se ha configurado el número de caja en el sistema' 
-      });
-    }
-
-    // Obtener la caja específica
-    const [cajas] = await pool.execute(`
-      SELECT 
+    // Obtener todas las sesiones de la caja
+    const [cajas] = await pool.execute(
+      `SELECT 
+        sesion,
         numero_caja,
         fecha_apertura,
         hora_apertura,
+        fecha_cierre,
         hora_cierre,
         monto_inicial,
         estado,
-        observaciones,
-        fecha_cierre
-      FROM caja
-      WHERE numero_caja = ?
-      ORDER BY fecha_apertura DESC, hora_apertura DESC
-      LIMIT 1
-    `, [numeroCajaDeseada]);
-
-    // Si no se encuentra la caja
-    if (cajas.length === 0) {
-      return res.json({ 
-        success: true, 
-        cajas: [],
-        message: 'No se encontró la caja especificada' 
-      });
-    }
-
-    const caja = cajas[0];
-
-    // Obtener los totales de movimientos para esta caja
-    const [totales] = await pool.execute(
-      `SELECT 
-        SUM(CASE WHEN metodoPago = 'EFECTIVO' THEN valor ELSE 0 END) AS venta_efectivo,
-        SUM(CASE WHEN metodoPago = 'TARJETA' THEN valor ELSE 0 END) AS venta_tarjeta
-       FROM movimientos 
-       WHERE numero_caja = ?`,
-      [caja.numero_caja]
+        observaciones
+       FROM caja
+       WHERE numero_caja = ?
+       ORDER BY sesion DESC`,
+      [numero_caja]
     );
 
-    // Formatear la respuesta con los totales
-    const cajaConTotales = {
-      numero_caja: caja.numero_caja,
-      fecha_apertura: caja.fecha_apertura,
-      hora_apertura: caja.hora_apertura || '-',
-      hora_cierre: caja.hora_cierre || '-',
-      monto_inicial: parseFloat(caja.monto_inicial),
-      venta_efectivo: parseFloat(totales[0]?.venta_efectivo || 0),
-      venta_tarjeta: parseFloat(totales[0]?.venta_tarjeta || 0),
-      total_efectivo: parseFloat(caja.monto_inicial) + parseFloat(totales[0]?.venta_efectivo || 0),
-      estado: caja.estado,
-      observaciones: caja.observaciones || '-',
-      fecha_cierre: caja.fecha_cierre !== '0000-00-00' ? caja.fecha_cierre : '-'
-    };
+    // Obtener totales para cada sesión
+    const cajasConTotales = await Promise.all(cajas.map(async (caja) => {
+      const [totales] = await pool.execute(
+        `SELECT 
+          SUM(CASE WHEN metodoPago = 'EFECTIVO' THEN valor ELSE 0 END) AS venta_efectivo,
+          SUM(CASE WHEN metodoPago = 'TARJETA' THEN valor ELSE 0 END) AS venta_tarjeta
+         FROM movimientos 
+         WHERE sesion = ?`,
+        [caja.sesion]
+      );
+
+      return {
+        ...caja,
+        venta_efectivo: parseFloat(totales[0]?.venta_efectivo || 0),
+        venta_tarjeta: parseFloat(totales[0]?.venta_tarjeta || 0),
+        total_general: parseFloat(totales[0]?.venta_efectivo || 0) + parseFloat(totales[0]?.venta_tarjeta || 0)
+      };
+    }));
 
     res.json({ 
       success: true, 
-      cajas: [cajaConTotales] // Devuelve un array con un solo elemento para mantener consistencia
+      data: cajasConTotales
     });
 
   } catch (error) {
     console.error('Error al listar cajas:', error);
     res.status(500).json({ 
       success: false, 
-      error: 'Error al obtener el listado de cajas' 
+      error: 'Error al obtener el listado de cajas',
+      detalle: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -394,7 +357,7 @@ exports.registrarArqueoDiario = async (req, res) => {
     return res.status(400).json({ success: false, error: 'ID de usuario inválido' });
   }
 
-  const fechaHoy = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const fechaHoy = new Date().toISOString().slice(0, 10);
 
   try {
     // Verificar si ya existe un arqueo para hoy
@@ -402,8 +365,12 @@ exports.registrarArqueoDiario = async (req, res) => {
       `SELECT id FROM arqueos_caja WHERE fecha = ?`,
       [fechaHoy]
     );
+    
     if (verificacion.length > 0) {
-      return res.status(409).json({ success: false, error: 'Ya existe un arqueo para el día de hoy' });
+      return res.status(409).json({ 
+        success: false, 
+        error: 'Ya existe un arqueo para el día de hoy' 
+      });
     }
 
     // Sumar cierres del día
@@ -429,7 +396,7 @@ exports.registrarArqueoDiario = async (req, res) => {
     res.json({
       success: true,
       message: 'Arqueo del día registrado correctamente',
-      arqueo: {
+      data: {
         fecha: fechaHoy,
         total_efectivo,
         total_tarjeta,
@@ -438,6 +405,10 @@ exports.registrarArqueoDiario = async (req, res) => {
     });
   } catch (err) {
     console.error('Error al registrar arqueo diario:', err);
-    res.status(500).json({ success: false, error: 'Error interno al registrar el arqueo' });
+    res.status(500).json({ 
+      success: false, 
+      error: 'Error interno al registrar el arqueo',
+      detalle: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
 };

@@ -37,19 +37,14 @@ function registrarMovimiento(datos) {
     contentType: 'application/json',
     data: JSON.stringify({
       codigo: datos.codigo,
-      fecha: new Date().toISOString().split('T')[0], // YYYY-MM-DD
-      hora: new Date().toTimeString().slice(0, 8),    // HH:MM:SS
       tipo: datos.tipo,
       valor: datos.valor,
       metodoPago: datos.metodoPago,
-      numero_caja: parseInt(numero_caja),
-      sesion: parseInt(sesion),
       id_usuario: id_usuario
     }),
     success: function(response) {
       if (response.success) {
         console.log('✅ Movimiento registrado:', response.data);
-        // Puedes mostrar mensaje de éxito aquí
       } else {
         mostrarError(response.message);
       }
@@ -66,14 +61,13 @@ $(document).ready(function () {
   // Función para cargar y mostrar todas las cajas
   function cargarCaja() {
     $.get('/api/caja/listar', function (data) {
-      if (data.success && data.cajas.length > 0) {
+      if (data.success && data.data.length > 0) {
         const tbody = $('#tablaCaja tbody');
         tbody.empty();
-        
-        data.cajas.forEach(caja => {
-          // Calcular total_efectivo
+
+        data.data.forEach(caja => {
           const totalEfectivo = parseFloat(caja.monto_inicial) + parseFloat(caja.venta_efectivo || 0);
-          
+
           const row = `
             <tr>
               <td>${caja.numero_caja}</td>
@@ -90,6 +84,7 @@ $(document).ready(function () {
           `;
           tbody.append(row);
         });
+
       } else {
         $('#tablaCaja tbody').html('<tr><td colspan="10" class="text-center">No hay registros de caja</td></tr>');
       }
@@ -274,13 +269,14 @@ $(document).ready(function () {
 
     $.post('/api/caja/arqueo-diario', { creado_por }, function (res) {
       if (res.success) {
+        const arqueo = res.data;
         $('#mensaje').html(`
           <div class="alert alert-success">
             Arqueo registrado: <br>
-            <strong>Fecha:</strong> ${res.arqueo.fecha}<br>
-            <strong>Total Efectivo:</strong> $${res.arqueo.total_efectivo.toFixed(2)}<br>
-            <strong>Total Tarjeta:</strong> $${res.arqueo.total_tarjeta.toFixed(2)}<br>
-            <strong>Total General:</strong> $${res.arqueo.total_general.toFixed(2)}
+            <strong>Fecha:</strong> ${arqueo.fecha}<br>
+            <strong>Total Efectivo:</strong> $${arqueo.total_efectivo.toFixed(2)}<br>
+            <strong>Total Tarjeta:</strong> $${arqueo.total_tarjeta.toFixed(2)}<br>
+            <strong>Total General:</strong> $${arqueo.total_general.toFixed(2)}
           </div>
         `);
       } else {

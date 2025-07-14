@@ -70,13 +70,7 @@ function cerrarModalPago() {
 async function continuarConPago(metodoPago) {
   if (!datosPendientes) return;
 
-  const { Codigo, hora, fecha, tipo, valor, numero_caja } = datosPendientes;
-  const sesion = parseInt(localStorage.getItem('sesionActiva')) || null;
-
-  if (!sesion) {
-    alert('No se ha detectado una sesión activa de caja.');
-    return;
-  }
+  const { Codigo, hora, fecha, tipo, valor } = datosPendientes;
 
   // Validación y pago con tarjeta
   if (metodoPago === "TARJETA") {
@@ -121,7 +115,7 @@ async function continuarConPago(metodoPago) {
     }
   }
 
-  // Mostrar datos en interfaz
+  // Mostrar en interfaz
   parrafoFecha.textContent = fecha;
   parrafoHora.textContent = hora;
   parrafoTipo.textContent = `${tipo} (${metodoPago})`;
@@ -129,7 +123,7 @@ async function continuarConPago(metodoPago) {
 
   showSpinner();
 
-  // Obtener ID del usuario desde el token
+  // Obtener ID de usuario desde el token
   const token = sessionStorage.getItem('authToken');
   const jwtPayload = parseJwt(token);
 
@@ -141,24 +135,42 @@ async function continuarConPago(metodoPago) {
 
   const id_usuario = jwtPayload.id;
 
-  // Registrar movimiento en la base de datos (con sesion)
-  await fetch('http://localhost:8080/api/caja/movimiento', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      codigo: Codigo,
-      fecha,
-      hora,
-      tipo,
-      valor,
-      metodoPago,
-      numero_caja,
-      id_usuario,
-      sesion
-    })
-  });
+  // Registrar movimiento en la base de datos (el backend maneja fecha/hora/sesion)
+  try {
+    const res = await fetch('http://localhost:8080/api/caja/movimiento', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        codigo: Codigo,
+        tipo,
+        valor,
+        metodoPago,
+        id_usuario
+      })
+    });
 
-  // Generar y enviar voucher con QR
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || "Error al registrar movimiento");
+
+  } catch (err) {
+    console.error("❌ Error al registrar movimiento:", err);
+    Swal.fire({
+      icon: "error",
+      title: "Error en movimiento",
+      text: err.message || "No se pudo registrar el movimiento.",
+      customClass: {
+        title: "swal-font",
+        htmlContainer: "swal-font",
+        popup: "alert-card",
+        confirmButton: "my-confirm-btn",
+      },
+      buttonsStyling: false,
+    });
+    hideSpinner();
+    return;
+  }
+
+  // Generar QR
   QR.makeCode(Codigo);
   await new Promise(resolve => setTimeout(resolve, 500));
 
@@ -203,7 +215,6 @@ async function continuarConPago(metodoPago) {
   document.getElementById("modalPago").style.display = "none";
   datosPendientes = null;
 
-  // Función para decodificar el JWT
   function parseJwt(token) {
     try {
       const base64Url = token.split('.')[1];
