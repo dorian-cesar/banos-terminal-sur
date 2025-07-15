@@ -97,6 +97,7 @@ exports.cargarCajaAbiertaPorUsuario = async (req, res) => {
          ac.id AS id_aperturas_cierres,
          ac.numero_caja,
          c.nombre AS nombre_caja,
+         u.username AS nombre_usuario,
          ac.fecha_apertura,
          ac.hora_apertura,
          ac.monto_inicial,
@@ -107,6 +108,7 @@ exports.cargarCajaAbiertaPorUsuario = async (req, res) => {
          ac.observaciones
        FROM aperturas_cierres ac
        INNER JOIN cajas c ON c.numero_caja = ac.numero_caja
+       INNER JOIN users u ON u.id = ac.id_usuario_apertura
        WHERE ac.id_usuario_apertura = ? AND ac.estado = 'abierta'
        ORDER BY ac.fecha_apertura DESC, ac.hora_apertura DESC
        LIMIT 1`,

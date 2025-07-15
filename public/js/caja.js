@@ -5,13 +5,15 @@ $(document).ready(function () {
     const token = sessionStorage.getItem('authToken');
 
     if (!usuarioJSON || !token) {
-      $('#tablaCaja').html('<div class="alert alert-danger">No hay sesión activa. Por favor inicia sesión.</div>');
+      $('#infoCaja').html('');
+      $('#tablaCaja tbody').html('<tr><td colspan="10" class="text-center text-danger">No hay sesión activa. Por favor inicia sesión.</td></tr>');
       return;
     }
 
     const payload = parseJwt(token);
     if (!payload || !payload.id) {
-      $('#tablaCaja').html('<div class="alert alert-danger">Token inválido. Vuelve a iniciar sesión.</div>');
+      $('#infoCaja').html('');
+      $('#tablaCaja tbody').html('<tr><td colspan="10" class="text-center text-danger">Token inválido. Vuelve a iniciar sesión.</td></tr>');
       return;
     }
 
@@ -19,49 +21,46 @@ $(document).ready(function () {
 
     $.get(`/api/caja/abierta?id_usuario=${id_usuario}`, function (res) {
       if (!res.success) {
-        $('#tablaCaja').html(`<div class="alert alert-warning">${res.mensaje}</div>`);
+        $('#infoCaja').html('');
+        $('#tablaCaja tbody').html(`<tr><td colspan="10" class="text-center text-warning">${res.mensaje}</td></tr>`);
         return;
       }
 
       const c = res.caja;
-      const tabla = `
-        <table class="table table-bordered table-striped">
-          <thead class="table-dark">
-            <tr>
-              <th>ID</th>
-              <th>N° Caja</th>
-              <th>Nombre</th>
-              <th>Fecha</th>
-              <th>Hora</th>
-              <th>Monto Inicial</th>
-              <th>Total Efectivo</th>
-              <th>Total Tarjeta</th>
-              <th>Total General</th>
-              <th>Estado</th>
-              <th>Observaciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>${c.id_aperturas_cierres}</td>
-              <td>${c.numero_caja}</td>
-              <td>${c.nombre_caja}</td>
-              <td>${c.fecha_apertura}</td>
-              <td>${c.hora_apertura}</td>
-              <td>$${parseFloat(c.monto_inicial).toLocaleString()}</td>
-              <td>$${parseFloat(c.total_efectivo).toLocaleString()}</td>
-              <td>$${parseFloat(c.total_tarjeta).toLocaleString()}</td>
-              <td><strong>$${parseFloat(c.total_general).toLocaleString()}</strong></td>
-              <td>${c.estado}</td>
-              <td>${c.observaciones ?? '—'}</td>
-            </tr>
-          </tbody>
-        </table>
+
+      // Card de información
+      const card = `
+        <div class="card shadow-sm border-primary">
+          <div class="card-body">
+            <h5 class="card-title mb-2">Caja Abierta por: ${c.nombre_usuario}</h5>
+            <p class="mb-1"><strong>N° Caja:</strong> ${c.numero_caja}</p>
+            <p class="mb-1"><strong>Fecha:</strong> ${c.fecha_apertura} &nbsp; <strong>Hora:</strong> ${c.hora_apertura}</p>
+          </div>
+        </div>
       `;
 
-      $('#tablaCaja').html(tabla);
+      // Fila de la tabla
+      const fila = `
+        <tr>
+          <td>${c.id_aperturas_cierres}</td>
+          <td>${c.fecha_apertura}</td>
+          <td>${c.hora_apertura}</td>
+          <td>${c.hora_cierre ?? '—'}</td>
+          <td>$${parseFloat(c.monto_inicial).toLocaleString()}</td>
+          <td>$${parseFloat(c.total_efectivo ?? 0).toLocaleString()}</td>
+          <td>$${parseFloat(c.total_tarjeta ?? 0).toLocaleString()}</td>
+          <td><strong>$${parseFloat(c.total_general ?? 0).toLocaleString()}</strong></td>
+          <td>${c.estado}</td>
+          <td>${c.observaciones ?? '—'}</td>
+        </tr>
+      `;
+
+      // Renderizar por separado
+      $('#infoCaja').html(card);
+      $('#tablaCaja tbody').html(fila);
     }).fail(function () {
-      $('#tablaCaja').html('<div class="alert alert-danger">No se pudo cargar la caja abierta.</div>');
+      $('#infoCaja').html('');
+      $('#tablaCaja tbody').html('<tr><td colspan="10" class="text-center text-danger">No se pudo cargar la caja abierta.</td></tr>');
     });
   }
 
