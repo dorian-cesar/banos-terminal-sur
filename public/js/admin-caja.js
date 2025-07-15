@@ -1,15 +1,18 @@
-const usuarioRaw = sessionStorage.getItem('usuario');
-const usuario = usuarioRaw ? JSON.parse(usuarioRaw) : null;
-const nombre = usuario?.username || 'desconocido';
-
-
 $(document).ready(() => {
+  const usuarioRaw = sessionStorage.getItem('usuario');
+  const usuario = usuarioRaw ? JSON.parse(usuarioRaw) : null;
+  const nombre = usuario?.username || 'desconocido';
+
+  // Cargar cajas NO arqueadas
   $('#btnArqueoCajas').on('click', () => {
-    fetch('/api/caja/cajas-dia') 
+    fetch('/api/caja/cajas-dia')
       .then(res => res.json())
       .then(data => {
+        const contenedor = $('#tablaArqueo tbody');
+
         if (!data.success || !Array.isArray(data.detalles) || data.detalles.length === 0) {
-          $('#tablaArqueo tbody').html('<tr><td colspan="9" class="text-center text-muted">No hay cajas hoy.</td></tr>');
+          contenedor.html('<tr><td colspan="9" class="text-center text-muted">No hay cajas pendientes de arqueo.</td></tr>');
+          $('#btnConfirmarArqueo').addClass('d-none').hide();
           return;
         }
 
@@ -27,7 +30,7 @@ $(document).ready(() => {
           </tr>
         `).join('');
 
-        $('#tablaArqueo tbody').html(filas);
+        contenedor.html(filas);
         $('#btnConfirmarArqueo').removeClass('d-none').show();
       })
       .catch(err => {
@@ -36,6 +39,7 @@ $(document).ready(() => {
       });
   });
 
+  // Confirmar arqueo (actualiza observaciones y fue_arqueada = true)
   $('#btnConfirmarArqueo').on('click', () => {
     fetch('/api/caja/arqueo', {
       method: 'POST',
@@ -44,6 +48,8 @@ $(document).ready(() => {
     })
       .then(res => res.json())
       .then(data => {
+        const contenedor = $('#tablaArqueo tbody');
+
         if (data.success) {
           alert(data.mensaje);
 
@@ -61,8 +67,8 @@ $(document).ready(() => {
             </tr>
           `).join('');
 
-          $('#tablaArqueo tbody').html(filas);
-          $('#btnConfirmarArqueo').addClass('d-none');
+          contenedor.html(filas);
+          $('#btnConfirmarArqueo').addClass('d-none').hide();
         } else {
           alert('Error: ' + (data.error || 'No se pudo completar el arqueo.'));
         }

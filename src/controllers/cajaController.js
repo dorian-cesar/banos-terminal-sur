@@ -320,7 +320,8 @@ exports.listarCajasDelDia = async (req, res) => {
        FROM aperturas_cierres ac
        INNER JOIN users u ON u.id = ac.id_usuario_apertura
        INNER JOIN cajas c ON c.numero_caja = ac.numero_caja
-       WHERE ac.fecha_apertura = CURDATE()`
+       WHERE ac.fecha_apertura = CURDATE()
+         AND ac.fue_arqueada = FALSE`
     );
 
     res.json({
@@ -341,7 +342,7 @@ exports.realizarArqueoDelDia = async (req, res) => {
   }
 
   try {
-    // Obtener cajas del día actual
+    // Cajas del día actual que NO han sido arqueadas
     const [registros] = await pool.execute(
       `SELECT 
          ac.id,
@@ -356,32 +357,33 @@ exports.realizarArqueoDelDia = async (req, res) => {
        FROM aperturas_cierres ac
        INNER JOIN users u ON u.id = ac.id_usuario_apertura
        INNER JOIN cajas c ON c.numero_caja = ac.numero_caja
-       WHERE ac.fecha_apertura = CURDATE()`
+       WHERE ac.fecha_apertura = CURDATE()
+         AND ac.fue_arqueada = FALSE`
     );
 
     if (!registros.length) {
       return res.json({
         success: true,
-        mensaje: 'No hay cajas para realizar arqueo hoy.',
+        mensaje: 'No hay cajas pendientes de arqueo hoy.',
         arqueadas: 0,
         detalles: []
       });
     }
 
-    // Texto de arqueo
     const ahora = new Date();
     const marca = `Arqueado por ${nombre} el ${ahora.toLocaleDateString()} a las ${ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
 
-    // IDs a actualizar
     const ids = registros.map(r => r.id);
     const placeholders = ids.map(() => '?').join(',');
 
+    // Actualizar campo observaciones + fue_arqueada = true
     await pool.execute(
-      `UPDATE aperturas_cierres SET observaciones = ? WHERE id IN (${placeholders})`,
+      `UPDATE aperturas_cierres 
+       SET observaciones = ?, fue_arqueada = TRUE 
+       WHERE id IN (${placeholders})`,
       [marca, ...ids]
     );
 
-    // Actualizar observaciones en los datos retornados
     const detallesActualizados = registros.map(r => ({ ...r, observaciones: marca }));
 
     res.json({

@@ -48,6 +48,7 @@ CREATE TABLE aperturas_cierres (
   total_general DECIMAL(10,2) GENERATED ALWAYS AS (total_efectivo + total_tarjeta) STORED,
   observaciones TEXT,
   estado ENUM('abierta', 'cerrada') NOT NULL DEFAULT 'abierta',
+  fue_arqueada BOOLEAN NOT NULL DEFAULT FALSE,
   FOREIGN KEY (numero_caja) REFERENCES cajas(numero_caja),
   FOREIGN KEY (id_usuario_apertura) REFERENCES users(id),
   FOREIGN KEY (id_usuario_cierre) REFERENCES users(id)
