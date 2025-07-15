@@ -23,15 +23,44 @@ let datosPendientes = null;
 
 let botonActivo = null;
 
+let serviciosDisponibles = {}; 
+
+async function cargarServicios() {
+  try {
+    const res = await fetch('/api/servicios');
+    const data = await res.json();
+
+    if (!data.success) throw new Error('No se pudieron cargar los servicios');
+
+    serviciosDisponibles = {};
+
+    data.servicios.forEach(s => {
+      serviciosDisponibles[s.tipo] = {        
+        precio: parseFloat(s.precio)
+      };
+    });
+
+    console.log("Servicios cargados:", serviciosDisponibles);
+
+  } catch (err) {
+    console.error('Error al cargar servicios:', err);
+    alert('Error al cargar servicios disponibles.');
+  }
+}
+
+// Llamar al cargar la página
+cargarServicios();
+
 botonesQR.forEach((btn) => {
   btn.addEventListener("click", (e) => {
     e.preventDefault();
 
-    // Validación de id_caja en localStorage
-    const id_caja = localStorage.getItem('id_caja');
-    if (!id_caja) {
+    // Validación de estado_caja en localStorage
+    const estado_caja = localStorage.getItem('estado_caja');
+    const id_aperturas_cierres = localStorage.getItem('id_aperturas_cierres')
+    if (estado_caja !== 'abierta') {
         alert('Por favor, primero debe abrir la caja antes de generar un QR.');
-        return; // Detiene la ejecución si no hay id_caja
+        return;
     }
 
     const fechaHoraAct = new Date();
@@ -47,7 +76,8 @@ botonesQR.forEach((btn) => {
       fecha: fechaStr,
       tipo: tipoStr,
       valor: valor,       
-      id_caja: id_caja     
+      id_caja: id_aperturas_cierres,
+      estado_caja      
     };
 
     botonActivo = btn;    
@@ -71,6 +101,8 @@ async function continuarConPago(metodoPago) {
   if (!datosPendientes) return;
 
   const { Codigo, hora, fecha, tipo, valor, id_caja } = datosPendientes;
+  const estado_caja = localStorage.getItem('estado_caja');
+
 
   // Validación y pago con tarjeta
   if (metodoPago === "TARJETA") {
@@ -149,7 +181,7 @@ async function continuarConPago(metodoPago) {
       tipo,
       valor,
       metodoPago,
-      id_caja,
+      estado_caja,
       id_usuario
     })
   });

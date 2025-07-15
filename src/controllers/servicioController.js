@@ -4,7 +4,7 @@ require('dotenv').config();
 exports.obtenerServiciosActivos = async (req, res) => {
   try {
     const [rows] = await pool.execute(
-      'SELECT codigo, tipo, precio FROM servicios WHERE estado = "activo"'
+      'SELECT tipo, precio FROM servicios WHERE estado = "activo"'
     );
     res.json({ success: true, servicios: rows });
   } catch (err) {
