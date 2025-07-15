@@ -7,51 +7,61 @@ exports.abrirCaja = async (req, res) => {
 
   // Validaciones
   if (!monto_inicial || isNaN(monto_inicial) || parseFloat(monto_inicial) <= 0) {
-    return res.status(400).json({ success: false, error: 'Monto inicial inválido. Debe ser un número mayor a 0.' });
+    return res.status(400).json({
+      success: false,
+      error: 'Monto inicial inválido. Debe ser un número mayor a 0.',
+    });
   }
 
   if (!id_usuario_apertura || isNaN(id_usuario_apertura)) {
-    return res.status(400).json({ success: false, error: 'ID de usuario inválido' });
+    return res.status(400).json({
+      success: false,
+      error: 'ID de usuario inválido',
+    });
   }
 
   const fecha = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
   const hora = new Date().toTimeString().slice(0, 8);   // HH:MM:SS
 
   try {
-    // Obtener el ID real de la caja física según el número
+    // Validar que la caja exista y esté activa
     const [cajaData] = await pool.execute(
-      'SELECT id FROM cajas WHERE numero_caja = ? AND estado = "activa" LIMIT 1',
+      'SELECT numero_caja FROM cajas WHERE numero_caja = ? AND estado = "activa" LIMIT 1',
       [NUMERO_CAJA]
     );
 
     if (cajaData.length === 0) {
-      return res.status(404).json({ success: false, error: 'Caja no registrada o inactiva.' });
+      return res.status(404).json({
+        success: false,
+        error: 'Caja no registrada o inactiva.',
+      });
     }
 
-    const id_caja = cajaData[0].id;
-
-    // Verificar si ya existe una apertura activa para esta caja
+    // Verificar si ya hay una apertura activa
     const [yaAbierta] = await pool.execute(
-      'SELECT id FROM aperturas_cierres WHERE id_caja = ? AND estado = "abierta" LIMIT 1',
-      [id_caja]
+      'SELECT id FROM aperturas_cierres WHERE numero_caja = ? AND estado = "abierta" LIMIT 1',
+      [NUMERO_CAJA]
     );
 
     if (yaAbierta.length > 0) {
-      return res.status(400).json({ success: false, error: 'Ya existe una caja abierta para este número.' });
+      return res.status(400).json({
+        success: false,
+        error: 'Ya existe una caja abierta para este número.',
+      });
     }
 
     // Insertar nueva apertura
     const [result] = await pool.execute(
       `INSERT INTO aperturas_cierres 
-        (id_caja, id_usuario_apertura, fecha_apertura, hora_apertura, monto_inicial, estado, observaciones)
+        (numero_caja, id_usuario_apertura, fecha_apertura, hora_apertura, monto_inicial, estado, observaciones)
        VALUES (?, ?, ?, ?, ?, 'abierta', ?)`,
       [
-        id_caja,
+        NUMERO_CAJA,
         id_usuario_apertura,
         fecha,
         hora,
         parseFloat(monto_inicial),
-        observaciones || null
+        observaciones || null,
       ]
     );
 
@@ -63,14 +73,17 @@ exports.abrirCaja = async (req, res) => {
       hora_apertura: hora,
       monto_inicial: parseFloat(monto_inicial),
       estado: 'abierta',
-      observaciones: observaciones || null
+      observaciones: observaciones || null,
     });
-
   } catch (err) {
     console.error('Error al abrir caja:', err);
-    res.status(500).json({ success: false, error: 'No se pudo abrir la caja.' });
+    res.status(500).json({
+      success: false,
+      error: 'No se pudo abrir la caja.',
+    });
   }
 };
+
 
 exports.cargarCajaAbiertaPorUsuario = async (req, res) => {
   const id_usuario = req.query.id_usuario;
@@ -83,8 +96,7 @@ exports.cargarCajaAbiertaPorUsuario = async (req, res) => {
     const [rows] = await pool.execute(
       `SELECT 
          ac.id AS id_aperturas_cierres,
-         ac.id_caja,
-         c.numero_caja,
+         ac.numero_caja,
          c.nombre AS nombre_caja,
          ac.fecha_apertura,
          ac.hora_apertura,
@@ -95,7 +107,7 @@ exports.cargarCajaAbiertaPorUsuario = async (req, res) => {
          ac.total_general,
          ac.observaciones
        FROM aperturas_cierres ac
-       INNER JOIN cajas c ON c.id = ac.id_caja
+       INNER JOIN cajas c ON c.numero_caja = ac.numero_caja
        WHERE ac.id_usuario_apertura = ? AND ac.estado = 'abierta'
        ORDER BY ac.fecha_apertura DESC, ac.hora_apertura DESC
        LIMIT 1`,
@@ -113,6 +125,7 @@ exports.cargarCajaAbiertaPorUsuario = async (req, res) => {
     res.status(500).json({ success: false, error: 'Error al obtener la caja abierta.' });
   }
 };
+
 
 exports.registrarMovimiento = async (req, res) => {
   try {

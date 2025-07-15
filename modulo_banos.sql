@@ -27,8 +27,7 @@ CREATE TABLE servicios (
   id INT AUTO_INCREMENT PRIMARY KEY,  
   nombre VARCHAR(100) NOT NULL,
   tipo ENUM('BAÑO', 'DUCHA') NOT NULL,
-  precio DECIMAL(10,2) NOT NULL,
-  duracion_minutos INT,
+  precio DECIMAL(10,2) NOT NULL,  
   descripcion TEXT,
   estado ENUM('activo', 'inactivo') NOT NULL DEFAULT 'activo'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -36,7 +35,7 @@ CREATE TABLE servicios (
 -- Tabla de sesiones de caja (aperturas/cierres)
 CREATE TABLE aperturas_cierres (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  id_caja INT NOT NULL,
+  numero_caja INT NOT NULL,
   id_usuario_apertura INT NOT NULL,
   id_usuario_cierre INT,
   fecha_apertura DATE NOT NULL,
@@ -49,7 +48,7 @@ CREATE TABLE aperturas_cierres (
   total_general DECIMAL(10,2) GENERATED ALWAYS AS (total_efectivo + total_tarjeta) STORED,
   observaciones TEXT,
   estado ENUM('abierta', 'cerrada') NOT NULL DEFAULT 'abierta',
-  FOREIGN KEY (id_caja) REFERENCES cajas(id),
+  FOREIGN KEY (numero_caja) REFERENCES cajas(numero_caja),
   FOREIGN KEY (id_usuario_apertura) REFERENCES users(id),
   FOREIGN KEY (id_usuario_cierre) REFERENCES users(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -60,7 +59,7 @@ CREATE TABLE movimientos (
   id_aperturas_cierres INT NOT NULL,
   id_usuario INT NOT NULL,
   id_servicio INT NOT NULL,
-  id_caja INT NOT NULL,
+  numero_caja INT NOT NULL,
   monto DECIMAL(10,2) NOT NULL,
   medio_pago ENUM('EFECTIVO', 'TARJETA') NOT NULL,
   fecha DATE NOT NULL,
@@ -71,7 +70,7 @@ CREATE TABLE movimientos (
   FOREIGN KEY (id_aperturas_cierres) REFERENCES aperturas_cierres(id),
   FOREIGN KEY (id_usuario) REFERENCES users(id),
   FOREIGN KEY (id_servicio) REFERENCES servicios(id),
-  FOREIGN KEY (id_caja) REFERENCES cajas(id)
+  FOREIGN KEY (numero_caja) REFERENCES cajas(numero_caja)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Insertar usuarios

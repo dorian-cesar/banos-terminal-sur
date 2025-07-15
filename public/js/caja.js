@@ -97,7 +97,6 @@ $(document).ready(function () {
       return;
     }
 
-    // Decodificar JWT para obtener ID de usuario
     function parseJwt(token) {
       try {
         const payload = token.split('.')[1];
@@ -117,27 +116,24 @@ $(document).ready(function () {
 
     const id_usuario_apertura = payload.id;
 
-    // Validar monto
     if (!monto || isNaN(monto) || parseFloat(monto) <= 0) {
       $('#mensaje').html('<div class="alert alert-danger">El monto inicial debe ser un número mayor a 0.</div>');
       return;
     }
 
-    // Enviar solicitud al backend
     $.post('/api/caja/abrir', {
       monto_inicial: monto,
       observaciones: observaciones,
       id_usuario_apertura: id_usuario_apertura
     }, function (res) {
       if (res.success) {
-        // Guardar ID de la apertura de caja (aperturas_cierres.id)
         localStorage.setItem('id_aperturas_cierres', res.id);
         localStorage.setItem('estado_caja', 'abierta');
-
+        localStorage.setItem('numero_caja', res.numero_caja); // ✅ NUEVO: número de caja
         $('#modalInicio').modal('hide');
         $('#mensaje').html('<div class="alert alert-success">Caja abierta correctamente</div>');
         $('#btnAbrirCaja').prop('disabled', true);
-        cargarCajas(); // Refrescar UI si existe esta función
+        cargarCajaUsuario(); // Si existe la función, actualiza UI
       } else {
         $('#mensaje').html('<div class="alert alert-danger">' + res.error + '</div>');
       }
