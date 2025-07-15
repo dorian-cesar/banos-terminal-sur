@@ -303,3 +303,99 @@ exports.cerrarCaja = async (req, res) => {
     });
   }
 };
+
+exports.listarCajasDelDia = async (req, res) => {
+  try {
+    const [registros] = await pool.execute(
+      `SELECT 
+         ac.id,
+         ac.fecha_apertura,
+         ac.hora_apertura,
+         ac.monto_inicial,
+         ac.total_efectivo,
+         ac.total_tarjeta,
+         ac.observaciones,
+         u.username,
+         c.nombre AS nombre_caja
+       FROM aperturas_cierres ac
+       INNER JOIN users u ON u.id = ac.id_usuario_apertura
+       INNER JOIN cajas c ON c.numero_caja = ac.numero_caja
+       WHERE ac.fecha_apertura = CURDATE()`
+    );
+
+    res.json({
+      success: true,
+      detalles: registros
+    });
+  } catch (err) {
+    console.error('Error al listar cajas del día:', err);
+    res.status(500).json({ success: false, error: 'Error interno.' });
+  }
+};
+
+exports.realizarArqueoDelDia = async (req, res) => {
+  const { nombre_usuario } = req.body;
+
+  if (!nombre_usuario) {
+    return res.status(400).json({ success: false, error: 'Nombre de usuario requerido.' });
+  }
+
+  try {
+    // Obtener cajas del día actual
+    const [registros] = await pool.execute(
+      `SELECT 
+         ac.id,
+         ac.fecha_apertura,
+         ac.hora_apertura,
+         ac.monto_inicial,
+         ac.total_efectivo,
+         ac.total_tarjeta,
+         ac.observaciones,
+         u.username,
+         c.nombre AS nombre_caja
+       FROM aperturas_cierres ac
+       INNER JOIN users u ON u.id = ac.id_usuario_apertura
+       INNER JOIN cajas c ON c.numero_caja = ac.numero_caja
+       WHERE ac.fecha_apertura = CURDATE()`
+    );
+
+    if (!registros.length) {
+      return res.json({
+        success: true,
+        mensaje: 'No hay cajas para realizar arqueo hoy.',
+        arqueadas: 0,
+        detalles: []
+      });
+    }
+
+    // Texto de arqueo
+    const ahora = new Date();
+    const marca = `Arqueado por ${nombre_usuario} el ${ahora.toLocaleDateString()} a las ${ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+
+    // IDs a actualizar
+    const ids = registros.map(r => r.id);
+    const placeholders = ids.map(() => '?').join(',');
+
+    await pool.execute(
+      `UPDATE aperturas_cierres SET observaciones = ? WHERE id IN (${placeholders})`,
+      [marca, ...ids]
+    );
+
+    // Actualizar observaciones en los datos retornados
+    const detallesActualizados = registros.map(r => ({ ...r, observaciones: marca }));
+
+    res.json({
+      success: true,
+      mensaje: `Arqueadas ${ids.length} caja(s) del día.`,
+      arqueadas: ids.length,
+      detalles: detallesActualizados
+    });
+  } catch (err) {
+    console.error('Error al realizar arqueo:', err);
+    res.status(500).json({ success: false, error: 'Error interno al realizar el arqueo.' });
+  }
+};
+
+
+
+

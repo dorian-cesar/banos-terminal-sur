@@ -18,6 +18,9 @@ router.get('/api/caja/movimiento', cajaController.listarMovimientosPorUsuario);
 // Ruta para cerrar caja
 router.post('/api/caja/cerrar', cajaController.cerrarCaja);
 
+router.get('/api/caja/cajas-dia', cajaController.listarCajasDelDia);
+
+router.post('/api/caja/arqueo', cajaController.realizarArqueoDelDia);
 
 
 router.get('/api/servicios', servicioController.obtenerServiciosActivos);
