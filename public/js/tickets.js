@@ -171,7 +171,7 @@ async function continuarConPago(metodoPago) {
   const id_usuario = jwtPayload.id;
 
   // Registrar movimiento en la base de datos
-  await fetch('http://localhost:8080/api/movimientos', {
+  await fetch('/api/caja/movimiento', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

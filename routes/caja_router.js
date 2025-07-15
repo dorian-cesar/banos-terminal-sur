@@ -13,11 +13,6 @@ router.post('/api/caja/movimiento', cajaController.registrarMovimiento);
 // Ruta para cerrar caja
 router.post('/api/caja/cerrar', cajaController.cerrarCaja);
 
-// Ruta para listar cajas
-router.get('/api/caja/listar', cajaController.listarCajas);
-
-router.post('/api/caja/arqueo-diario', cajaController.registrarArqueoDiario);
-
 router.get('/api/servicios', servicioController.obtenerServiciosActivos);
 
 module.exports = router;

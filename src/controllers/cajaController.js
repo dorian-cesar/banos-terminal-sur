@@ -84,7 +84,6 @@ exports.abrirCaja = async (req, res) => {
   }
 };
 
-
 exports.cargarCajaAbiertaPorUsuario = async (req, res) => {
   const id_usuario = req.query.id_usuario;
 
@@ -129,7 +128,8 @@ exports.cargarCajaAbiertaPorUsuario = async (req, res) => {
 
 exports.registrarMovimiento = async (req, res) => {
   try {
-    const { codigo, fecha, hora, tipo, valor, metodoPago, id_caja, id_usuario } = req.body;
+    const { codigo, fecha, hora, tipo, valor, metodoPago, id_usuario } = req.body;
+    const numero_caja = parseInt(process.env.NUMERO_CAJA); // Se usa número_caja directamente
 
     // Validaciones básicas
     if (!codigo || !fecha || !hora || !tipo || !valor || !metodoPago || !id_usuario) {
@@ -144,10 +144,36 @@ exports.registrarMovimiento = async (req, res) => {
       return res.status(400).json({ success: false, message: 'ID de usuario inválido' });
     }
 
+    // Obtener ID del servicio a partir del tipo (BAÑO o DUCHA)
+    const [servicioData] = await pool.execute(
+      'SELECT id FROM servicios WHERE tipo = ? AND estado = "activo" LIMIT 1',
+      [tipo]
+    );
+
+    if (servicioData.length === 0) {
+      return res.status(400).json({ success: false, message: 'Tipo de servicio no válido o inactivo' });
+    }
+
+    const id_servicio = servicioData[0].id;
+
+    // Obtener ID de la sesión de caja abierta
+    const [apertura] = await pool.execute(
+      'SELECT id FROM aperturas_cierres WHERE numero_caja = ? AND estado = "abierta" ORDER BY id DESC LIMIT 1',
+      [numero_caja]
+    );
+
+    if (apertura.length === 0) {
+      return res.status(400).json({ success: false, message: 'No hay caja abierta' });
+    }
+
+    const id_aperturas_cierres = apertura[0].id;
+
+    // Insertar movimiento
     const [result] = await pool.execute(
-      `INSERT INTO movimientos (codigo, fecha, hora, tipo, valor, metodoPago, id_caja, id_usuario)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [codigo, fecha, hora, tipo, valor, metodoPago, id_caja || null, id_usuario]
+      `INSERT INTO movimientos 
+       (codigo, fecha, hora, id_servicio, monto, medio_pago, numero_caja, id_usuario, id_aperturas_cierres)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [codigo, fecha, hora, id_servicio, valor, metodoPago, numero_caja, id_usuario, id_aperturas_cierres]
     );
 
     res.json({ success: true, message: 'Movimiento registrado', insertId: result.insertId });
@@ -157,6 +183,7 @@ exports.registrarMovimiento = async (req, res) => {
     res.status(500).json({ success: false, message: 'Error interno del servidor' });
   }
 };
+
 
 
 exports.cerrarCaja = async (req, res) => {
@@ -230,115 +257,4 @@ exports.cerrarCaja = async (req, res) => {
   }
 };
 
-exports.listarCajas = async (req, res) => {
-  try {
-    // Obtener todas las cajas
-    const [cajas] = await pool.execute(`
-      SELECT 
-        id,
-        fecha,
-        hora_inicio,
-        hora_cierre,
-        monto_inicial,
-        estado,
-        observaciones,
-        fecha_cierre
-      FROM caja
-      ORDER BY fecha DESC, hora_inicio DESC
-    `);
 
-    // Para cada caja, obtener los totales de movimientos
-    const cajasConTotales = await Promise.all(cajas.map(async (caja) => {
-      const [totales] = await pool.execute(
-        `SELECT 
-          SUM(CASE WHEN metodoPago = 'EFECTIVO' THEN valor ELSE 0 END) AS venta_efectivo,
-          SUM(CASE WHEN metodoPago = 'TARJETA' THEN valor ELSE 0 END) AS venta_tarjeta
-         FROM movimientos 
-         WHERE id_caja = ?`,
-        [caja.id]
-      );
-
-      return {
-        ...caja,
-        venta_efectivo: parseFloat(totales[0]?.venta_efectivo || 0),
-        venta_tarjeta: parseFloat(totales[0]?.venta_tarjeta || 0),
-        total_efectivo: parseFloat(caja.monto_inicial) + parseFloat(totales[0]?.venta_efectivo || 0)
-      };
-    }));
-
-    // Formatear respuesta
-    const cajasFormateadas = cajasConTotales.map(caja => ({
-      id: caja.id,
-      fecha: caja.fecha,
-      hora_inicio: caja.hora_inicio || '-',
-      hora_cierre: caja.hora_cierre || '-',
-      monto_inicial: parseFloat(caja.monto_inicial),
-      venta_efectivo: caja.venta_efectivo,
-      venta_tarjeta: caja.venta_tarjeta,
-      total_efectivo: caja.total_efectivo,
-      estado: caja.estado,
-      observaciones: caja.observaciones || '-',
-      fecha_cierre: caja.fecha_cierre !== '0000-00-00' ? caja.fecha_cierre : '-'
-    }));
-
-    res.json({ success: true, cajas: cajasFormateadas });
-  } catch (error) {
-    console.error('Error al listar cajas:', error);
-    res.status(500).json({ success: false, error: 'Error al obtener el listado de cajas' });
-  }
-};
-
-exports.registrarArqueoDiario = async (req, res) => {
-  const { creado_por } = req.body;
-
-  if (!creado_por || isNaN(creado_por)) {
-    return res.status(400).json({ success: false, error: 'ID de usuario inválido' });
-  }
-
-  const fechaHoy = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-
-  try {
-    // Verificar si ya existe un arqueo para hoy
-    const [verificacion] = await pool.execute(
-      `SELECT id FROM arqueos_caja WHERE fecha = ?`,
-      [fechaHoy]
-    );
-    if (verificacion.length > 0) {
-      return res.status(409).json({ success: false, error: 'Ya existe un arqueo para el día de hoy' });
-    }
-
-    // Sumar cierres del día
-    const [result] = await pool.execute(
-      `SELECT 
-        COALESCE(SUM(venta_efectivo), 0) AS total_efectivo,
-        COALESCE(SUM(venta_tarjeta), 0) AS total_tarjeta
-       FROM cierres_diarios
-       WHERE fecha = ?`,
-      [fechaHoy]
-    );
-
-    const total_efectivo = result[0].total_efectivo;
-    const total_tarjeta = result[0].total_tarjeta;
-
-    // Insertar en arqueos_caja
-    await pool.execute(
-      `INSERT INTO arqueos_caja (fecha, total_efectivo, total_tarjeta, creado_por)
-       VALUES (?, ?, ?, ?)`,
-      [fechaHoy, total_efectivo, total_tarjeta, creado_por]
-    );
-
-    res.json({
-      success: true,
-      message: 'Arqueo del día registrado correctamente',
-      arqueo: {
-        fecha: fechaHoy,
-        total_efectivo,
-        total_tarjeta,
-        total_general: total_efectivo + total_tarjeta
-      }
-    });
-  } catch (err) {
-    console.error('Error al registrar arqueo diario:', err);
-    res.status(500).json({ success: false, error: 'Error interno al registrar el arqueo' });
-  }
-};

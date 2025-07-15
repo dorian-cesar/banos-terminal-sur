@@ -129,11 +129,11 @@ $(document).ready(function () {
       if (res.success) {
         localStorage.setItem('id_aperturas_cierres', res.id);
         localStorage.setItem('estado_caja', 'abierta');
-        localStorage.setItem('numero_caja', res.numero_caja); // ✅ NUEVO: número de caja
+        localStorage.setItem('numero_caja', res.numero_caja); 
         $('#modalInicio').modal('hide');
         $('#mensaje').html('<div class="alert alert-success">Caja abierta correctamente</div>');
         $('#btnAbrirCaja').prop('disabled', true);
-        cargarCajaUsuario(); // Si existe la función, actualiza UI
+        cargarCajaUsuario(); 
       } else {
         $('#mensaje').html('<div class="alert alert-danger">' + res.error + '</div>');
       }
