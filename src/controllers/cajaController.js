@@ -3,7 +3,7 @@ require('dotenv').config();
 
 exports.abrirCaja = async (req, res) => {
   const { monto_inicial, observaciones, id_usuario_apertura } = req.body;
-  const ID_CAJA = parseInt(process.env.ID_CAJA); // ID fijo de la caja física
+  const NUMERO_CAJA = parseInt(process.env.NUMERO_CAJA); // número de caja desde .env
 
   // Validaciones
   if (!monto_inicial || isNaN(monto_inicial) || parseFloat(monto_inicial) <= 0) {
@@ -15,43 +15,52 @@ exports.abrirCaja = async (req, res) => {
   }
 
   const fecha = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-  const hora_inicio = new Date().toTimeString().slice(0, 8); // HH:MM:SS
+  const hora = new Date().toTimeString().slice(0, 8);   // HH:MM:SS
 
   try {
-    // Verificar si ya existe una caja abierta para esta caja física
-    const [cajaAbierta] = await pool.execute(
-      'SELECT id FROM caja WHERE id_caja = ? AND estado = "abierta"',
-      [ID_CAJA]
+    // Obtener el ID real de la caja física según el número
+    const [cajaData] = await pool.execute(
+      'SELECT id FROM cajas WHERE numero_caja = ? AND estado = "activa" LIMIT 1',
+      [NUMERO_CAJA]
     );
 
-    if (cajaAbierta.length > 0) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Ya existe una caja abierta para esta caja física.' 
-      });
+    if (cajaData.length === 0) {
+      return res.status(404).json({ success: false, error: 'Caja no registrada o inactiva.' });
+    }
+
+    const id_caja = cajaData[0].id;
+
+    // Verificar si ya existe una apertura activa para esta caja
+    const [yaAbierta] = await pool.execute(
+      'SELECT id FROM aperturas_cierres WHERE id_caja = ? AND estado = "abierta" LIMIT 1',
+      [id_caja]
+    );
+
+    if (yaAbierta.length > 0) {
+      return res.status(400).json({ success: false, error: 'Ya existe una caja abierta para este número.' });
     }
 
     // Insertar nueva apertura
     const [result] = await pool.execute(
-      `INSERT INTO caja 
-        (id_caja, fecha, hora_inicio, monto_inicial, estado, observaciones, id_usuario_apertura) 
-       VALUES (?, ?, ?, ?, 'abierta', ?, ?)`,
+      `INSERT INTO aperturas_cierres 
+        (id_caja, id_usuario_apertura, fecha_apertura, hora_apertura, monto_inicial, estado, observaciones)
+       VALUES (?, ?, ?, ?, ?, 'abierta', ?)`,
       [
-        ID_CAJA,
+        id_caja,
+        id_usuario_apertura,
         fecha,
-        hora_inicio,
+        hora,
         parseFloat(monto_inicial),
-        observaciones || null,
-        id_usuario_apertura
+        observaciones || null
       ]
     );
 
     res.json({
       success: true,
-      id: result.insertId,       // ID autoincremental de la apertura
-      id_caja: ID_CAJA,  // ID fijo de la caja física
-      fecha,
-      hora_inicio,
+      id: result.insertId,
+      numero_caja: NUMERO_CAJA,
+      fecha_apertura: fecha,
+      hora_apertura: hora,
       monto_inicial: parseFloat(monto_inicial),
       estado: 'abierta',
       observaciones: observaciones || null
@@ -63,6 +72,47 @@ exports.abrirCaja = async (req, res) => {
   }
 };
 
+exports.cargarCajaAbiertaPorUsuario = async (req, res) => {
+  const id_usuario = req.query.id_usuario;
+
+  if (!id_usuario || isNaN(id_usuario)) {
+    return res.status(400).json({ success: false, error: 'ID de usuario inválido.' });
+  }
+
+  try {
+    const [rows] = await pool.execute(
+      `SELECT 
+         ac.id AS id_aperturas_cierres,
+         ac.id_caja,
+         c.numero_caja,
+         c.nombre AS nombre_caja,
+         ac.fecha_apertura,
+         ac.hora_apertura,
+         ac.monto_inicial,
+         ac.estado,
+         ac.total_efectivo,
+         ac.total_tarjeta,
+         ac.total_general,
+         ac.observaciones
+       FROM aperturas_cierres ac
+       INNER JOIN cajas c ON c.id = ac.id_caja
+       WHERE ac.id_usuario_apertura = ? AND ac.estado = 'abierta'
+       ORDER BY ac.fecha_apertura DESC, ac.hora_apertura DESC
+       LIMIT 1`,
+      [id_usuario]
+    );
+
+    if (rows.length === 0) {
+      return res.json({ success: false, mensaje: 'No hay caja abierta asociada a este usuario.' });
+    }
+
+    res.json({ success: true, caja: rows[0] });
+
+  } catch (err) {
+    console.error('Error al cargar caja abierta:', err);
+    res.status(500).json({ success: false, error: 'Error al obtener la caja abierta.' });
+  }
+};
 
 exports.registrarMovimiento = async (req, res) => {
   try {

@@ -1,52 +1,92 @@
 $(document).ready(function () {
   // Función para cargar y mostrar todas las cajas
-  function cargarCajas() {
-    $.get('/api/caja/listar', function (data) {
-      if (data.success && data.cajas.length > 0) {
-        const tbody = $('#tablaCaja tbody');
-        tbody.empty();
-        
-        data.cajas.forEach(caja => {
-          // Calcular total_efectivo
-          const totalEfectivo = parseFloat(caja.monto_inicial) + parseFloat(caja.venta_efectivo || 0);
-          
-          const row = `
-            <tr>
-              <td>${caja.id}</td>
-              <td>${caja.fecha}</td>
-              <td>${caja.hora_inicio || '-'}</td>
-              <td>${caja.hora_cierre || '-'}</td>
-              <td>$${parseFloat(caja.monto_inicial).toFixed(2)}</td>
-              <td>$${parseFloat(caja.venta_efectivo || 0).toFixed(2)}</td>
-              <td>$${parseFloat(caja.venta_tarjeta || 0).toFixed(2)}</td>
-              <td>$${totalEfectivo.toFixed(2)}</td>
-              <td>${caja.estado}</td>
-              <td>${caja.observaciones || '-'}</td>
-            </tr>
-          `;
-          tbody.append(row);
-        });
-      } else {
-        $('#tablaCaja tbody').html('<tr><td colspan="10" class="text-center">No hay registros de caja</td></tr>');
+  function cargarCajaUsuario() {
+    const usuarioJSON = sessionStorage.getItem('usuario');
+    const token = sessionStorage.getItem('authToken');
+
+    if (!usuarioJSON || !token) {
+      $('#tablaCaja').html('<div class="alert alert-danger">No hay sesión activa. Por favor inicia sesión.</div>');
+      return;
+    }
+
+    const payload = parseJwt(token);
+    if (!payload || !payload.id) {
+      $('#tablaCaja').html('<div class="alert alert-danger">Token inválido. Vuelve a iniciar sesión.</div>');
+      return;
+    }
+
+    const id_usuario = payload.id;
+
+    $.get(`/api/caja/abierta?id_usuario=${id_usuario}`, function (res) {
+      if (!res.success) {
+        $('#tablaCaja').html(`<div class="alert alert-warning">${res.mensaje}</div>`);
+        return;
       }
+
+      const c = res.caja;
+      const tabla = `
+        <table class="table table-bordered table-striped">
+          <thead class="table-dark">
+            <tr>
+              <th>ID</th>
+              <th>N° Caja</th>
+              <th>Nombre</th>
+              <th>Fecha</th>
+              <th>Hora</th>
+              <th>Monto Inicial</th>
+              <th>Total Efectivo</th>
+              <th>Total Tarjeta</th>
+              <th>Total General</th>
+              <th>Estado</th>
+              <th>Observaciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>${c.id_aperturas_cierres}</td>
+              <td>${c.numero_caja}</td>
+              <td>${c.nombre_caja}</td>
+              <td>${c.fecha_apertura}</td>
+              <td>${c.hora_apertura}</td>
+              <td>$${parseFloat(c.monto_inicial).toLocaleString()}</td>
+              <td>$${parseFloat(c.total_efectivo).toLocaleString()}</td>
+              <td>$${parseFloat(c.total_tarjeta).toLocaleString()}</td>
+              <td><strong>$${parseFloat(c.total_general).toLocaleString()}</strong></td>
+              <td>${c.estado}</td>
+              <td>${c.observaciones ?? '—'}</td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+
+      $('#tablaCaja').html(tabla);
     }).fail(function () {
-      $('#mensaje').html('<div class="alert alert-danger">Error al cargar los registros de caja</div>');
+      $('#tablaCaja').html('<div class="alert alert-danger">No se pudo cargar la caja abierta.</div>');
     });
   }
 
+  // Helper para decodificar JWT
+  function parseJwt(token) {
+    try {
+      const payload = token.split('.')[1];
+      return JSON.parse(atob(payload));
+    } catch (e) {
+      return null;
+    }
+  }
+
   // Cargar cajas al iniciar
-  cargarCajas();
+  cargarCajaUsuario();
 
   // Botón para actualizar la lista
-  $('#btnActualizar').on('click', cargarCajas);
+  $('#btnActualizar').on('click', cargarCajaUsuario);
 
-  $('#formInicioCaja').on('submit', function (e) {
+ $('#formInicioCaja').on('submit', function (e) {
     e.preventDefault();
 
     const monto = $('#monto_inicial_modal').val();
     const observaciones = $('#observaciones_modal').val();
 
-    // Obtener token desde sessionStorage
     const token = sessionStorage.getItem('authToken');
     const usuarioJSON = sessionStorage.getItem('usuario');
 
@@ -57,12 +97,11 @@ $(document).ready(function () {
       return;
     }
 
-    // Decodificar JWT para obtener el ID de usuario
+    // Decodificar JWT para obtener ID de usuario
     function parseJwt(token) {
       try {
         const payload = token.split('.')[1];
-        const decoded = JSON.parse(atob(payload));
-        return decoded;
+        return JSON.parse(atob(payload));
       } catch (err) {
         return null;
       }
@@ -84,18 +123,21 @@ $(document).ready(function () {
       return;
     }
 
-    // Enviar datos al backend
+    // Enviar solicitud al backend
     $.post('/api/caja/abrir', {
       monto_inicial: monto,
       observaciones: observaciones,
       id_usuario_apertura: id_usuario_apertura
     }, function (res) {
       if (res.success) {
-        localStorage.setItem('id_caja', res.id);
+        // Guardar ID de la apertura de caja (aperturas_cierres.id)
+        localStorage.setItem('id_aperturas_cierres', res.id);
+        localStorage.setItem('estado_caja', 'abierta');
+
         $('#modalInicio').modal('hide');
         $('#mensaje').html('<div class="alert alert-success">Caja abierta correctamente</div>');
         $('#btnAbrirCaja').prop('disabled', true);
-        cargarCajas(); // Actualizar tabla
+        cargarCajas(); // Refrescar UI si existe esta función
       } else {
         $('#mensaje').html('<div class="alert alert-danger">' + res.error + '</div>');
       }

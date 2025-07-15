@@ -5,7 +5,6 @@ const bodyParser = require('body-parser');
 const logger = require('./utils/logger');
 const path = require('path');
 const { imprimirTicket } = require('./services/printService');
-const { registrarMovimiento } = require('./controllers/cajaController');
 
 
 const paymentController = require('./controllers/paymentController');
@@ -81,11 +80,7 @@ app.get('/monitor', (req, res) => {
   res.json({ success: true, server: true });
 });
 
-app.post('/api/movimientos', registrarMovimiento);
-
 app.use(cajaRoutes);
-
-
 
 // Manejo de errores generales
 app.use((err, req, res, next) => {
