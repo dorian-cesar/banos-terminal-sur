@@ -127,6 +127,39 @@ exports.cargarCajaAbiertaPorUsuario = async (req, res) => {
   }
 };
 
+exports.listarMovimientosPorUsuario = async (req, res) => {
+  const id_usuario = req.query.id_usuario;
+
+  if (!id_usuario || isNaN(id_usuario)) {
+    return res.status(400).json({ success: false, error: 'ID de usuario inválido.' });
+  }
+
+  try {
+    const [rows] = await pool.execute(
+      `SELECT 
+         m.id,
+         m.fecha,
+         m.hora,
+         m.monto,
+         m.medio_pago,
+         m.observaciones,
+         m.codigo,
+         m.numero_caja,
+         s.nombre AS nombre_servicio
+       FROM movimientos m
+       INNER JOIN servicios s ON s.id = m.id_servicio
+       WHERE m.id_usuario = ?
+       ORDER BY m.fecha DESC, m.hora DESC`,
+      [id_usuario]
+    );
+
+    res.json({ success: true, movimientos: rows });
+  } catch (err) {
+    console.error('Error al obtener movimientos:', err);
+    res.status(500).json({ success: false, error: 'Error al listar movimientos.' });
+  }
+};
+
 
 exports.registrarMovimiento = async (req, res) => {
   try {

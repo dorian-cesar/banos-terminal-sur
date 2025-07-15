@@ -10,6 +10,9 @@ router.get('/api/caja/abierta', cajaController.cargarCajaAbiertaPorUsuario);
 
 router.post('/api/caja/movimiento', cajaController.registrarMovimiento);
 
+router.get('/api/caja/movimiento', cajaController.listarMovimientosPorUsuario);
+
+
 // Ruta para cerrar caja
 router.post('/api/caja/cerrar', cajaController.cerrarCaja);
 
