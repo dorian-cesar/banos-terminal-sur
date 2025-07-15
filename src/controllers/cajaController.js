@@ -334,9 +334,9 @@ exports.listarCajasDelDia = async (req, res) => {
 };
 
 exports.realizarArqueoDelDia = async (req, res) => {
-  const { nombre_usuario } = req.body;
+  const { nombre } = req.body;
 
-  if (!nombre_usuario) {
+  if (!nombre) {
     return res.status(400).json({ success: false, error: 'Nombre de usuario requerido.' });
   }
 
@@ -370,7 +370,7 @@ exports.realizarArqueoDelDia = async (req, res) => {
 
     // Texto de arqueo
     const ahora = new Date();
-    const marca = `Arqueado por ${nombre_usuario} el ${ahora.toLocaleDateString()} a las ${ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    const marca = `Arqueado por ${nombre} el ${ahora.toLocaleDateString()} a las ${ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
 
     // IDs a actualizar
     const ids = registros.map(r => r.id);

@@ -1,5 +1,7 @@
-const usuario = JSON.parse(localStorage.getItem('usuario'));
+const usuarioRaw = sessionStorage.getItem('usuario');
+const usuario = usuarioRaw ? JSON.parse(usuarioRaw) : null;
 const nombre = usuario?.username || 'desconocido';
+
 
 $(document).ready(() => {
   $('#btnArqueoCajas').on('click', () => {
@@ -29,19 +31,16 @@ $(document).ready(() => {
         $('#btnConfirmarArqueo').removeClass('d-none').show();
       })
       .catch(err => {
-        console.error('Error al cargar cajas:', err);
+        console.error(err);
         alert('Error al cargar datos para arqueo.');
       });
   });
 
   $('#btnConfirmarArqueo').on('click', () => {
-    const usuario = JSON.parse(localStorage.getItem('usuario'));
-    const nombre_usuario = usuario?.username || 'desconocido';
-
     fetch('/api/caja/arqueo', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre_usuario })
+      body: JSON.stringify({ nombre })
     })
       .then(res => res.json())
       .then(data => {
@@ -69,7 +68,7 @@ $(document).ready(() => {
         }
       })
       .catch(err => {
-        console.error('Error en confirmación de arqueo:', err);
+        console.error(err);
         alert('Error en el servidor al realizar arqueo.');
       });
   });
