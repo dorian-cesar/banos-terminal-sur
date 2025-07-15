@@ -1,4 +1,13 @@
 $(document).ready(function () {
+  const usuarioRaw = sessionStorage.getItem('usuario');
+  const usuario = usuarioRaw ? JSON.parse(usuarioRaw) : null;
+
+  console.log("Usuario:", usuario); // esto muestra {username:..., role:...}
+
+  if (usuario?.role === 'admin') {
+    $('#btnAdmin').show(); // Solo mostrar si es admin
+  }
+  
   // Función para cargar y mostrar todas las cajas
   function cargarCajaUsuario() {
     const usuarioJSON = sessionStorage.getItem('usuario');
