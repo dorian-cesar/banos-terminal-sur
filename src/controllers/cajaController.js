@@ -160,7 +160,6 @@ exports.listarMovimientosPorUsuario = async (req, res) => {
   }
 };
 
-
 exports.registrarMovimiento = async (req, res) => {
   try {
     const { codigo, fecha, hora, tipo, valor, metodoPago, id_usuario } = req.body;
@@ -219,77 +218,88 @@ exports.registrarMovimiento = async (req, res) => {
   }
 };
 
-
-
 exports.cerrarCaja = async (req, res) => {
-  const { id_caja, id_usuario_cierre } = req.body;
+  const { id_aperturas_cierres, id_usuario_cierre, observaciones } = req.body;
 
-  if (!id_caja || isNaN(id_caja)) {
-    return res.status(400).json({ success: false, error: 'ID de caja inválido' });
+  if (!id_aperturas_cierres || !id_usuario_cierre) {
+    return res.status(400).json({
+      success: false,
+      error: 'Datos obligatorios faltantes.',
+    });
   }
-
-  if (!id_usuario_cierre || isNaN(id_usuario_cierre)) {
-    return res.status(400).json({ success: false, error: 'ID de usuario inválido' });
-  }
-
-  const fecha_cierre = new Date().toISOString().slice(0, 10);
-  const hora_cierre = new Date().toTimeString().slice(0, 8);
 
   try {
-    // Obtener montos de movimientos
-    const [movimientos] = await pool.execute(
-      `SELECT 
-        SUM(CASE WHEN metodoPago = 'EFECTIVO' THEN valor ELSE 0 END) AS total_efectivo,
-        SUM(CASE WHEN metodoPago = 'TARJETA' THEN valor ELSE 0 END) AS total_tarjeta
-       FROM movimientos 
-       WHERE id_caja = ?`,
-      [id_caja]
+    // Verificar que la sesión exista y esté abierta
+    const [sesiones] = await pool.execute(
+      `SELECT estado FROM aperturas_cierres WHERE id = ?`,
+      [id_aperturas_cierres]
     );
 
-    const venta_efectivo = movimientos[0].total_efectivo || 0;
-    const venta_tarjeta = movimientos[0].total_tarjeta || 0;
-
-    // Registrar cierre diario
-    await pool.execute(
-      `INSERT INTO cierres_diarios (id_caja, fecha, hora_cierre, venta_efectivo, venta_tarjeta, id_usuario)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [id_caja, fecha_cierre, hora_cierre, venta_efectivo, venta_tarjeta, id_usuario_cierre]
-    );
-
-    // Actualizar caja
-    const [updateResult] = await pool.execute(
-      `UPDATE caja
-       SET estado = 'cerrada',
-           hora_cierre = ?,
-           fecha_cierre = ?,
-           venta_efectivo = ?,
-           venta_tarjeta = ?,
-           id_usuario_cierre = ?
-       WHERE id = ? AND estado = 'abierta'`,
-      [hora_cierre, fecha_cierre, venta_efectivo, venta_tarjeta, id_usuario_cierre, id_caja]
-    );
-
-    if (updateResult.affectedRows === 0) {
-      return res.status(400).json({ success: false, error: 'La caja ya está cerrada o no existe' });
+    if (sesiones.length === 0) {
+      return res.status(404).json({ success: false, error: 'Sesión no encontrada.' });
     }
+
+    if (sesiones[0].estado !== 'abierta') {
+      return res.status(400).json({ success: false, error: 'La sesión ya está cerrada.' });
+    }
+
+    // Obtener totales desde la tabla movimientos
+    const [[totales]] = await pool.execute(
+      `SELECT 
+         SUM(CASE WHEN medio_pago = 'EFECTIVO' THEN monto ELSE 0 END) AS total_efectivo,
+         SUM(CASE WHEN medio_pago = 'TARJETA' THEN monto ELSE 0 END) AS total_tarjeta
+       FROM movimientos
+       WHERE id_aperturas_cierres = ?`,
+      [id_aperturas_cierres]
+    );
+
+    // Valores por defecto si no hubo ventas
+    const total_efectivo = totales.total_efectivo || 0;
+    const total_tarjeta = totales.total_tarjeta || 0;
+
+    // Obtener fecha y hora actuales
+    const now = new Date();
+    const fecha_cierre = now.toISOString().split('T')[0];
+    const hora_cierre = now.toTimeString().split(':').slice(0, 2).join(':');
+
+    // Actualizar la sesión
+    await pool.execute(
+      `UPDATE aperturas_cierres
+       SET estado = 'cerrada',
+           fecha_cierre = ?,
+           hora_cierre = ?,
+           id_usuario_cierre = ?,
+           total_efectivo = ?,
+           total_tarjeta = ?,
+           observaciones = ?
+       WHERE id = ?`,
+      [
+        fecha_cierre,
+        hora_cierre,
+        id_usuario_cierre,
+        total_efectivo,
+        total_tarjeta,
+        observaciones || null,
+        id_aperturas_cierres,
+      ]
+    );
 
     res.json({
       success: true,
-      message: 'Caja cerrada correctamente',
-      cierre: {
-        id_caja,
-        id_usuario_cierre,
+      mensaje: 'Caja cerrada correctamente.',
+      data: {
+        total_efectivo,
+        total_tarjeta,
+        total_general: total_efectivo + total_tarjeta,
         fecha_cierre,
         hora_cierre,
-        venta_efectivo,
-        venta_tarjeta
-      }
+      },
     });
-
-  } catch (error) {
-    console.error('Error al cerrar caja:', error);
-    res.status(500).json({ success: false, error: 'Error interno al cerrar caja' });
+  } catch (err) {
+    console.error('Error al cerrar la caja:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Error interno al cerrar la caja.',
+    });
   }
 };
-
-

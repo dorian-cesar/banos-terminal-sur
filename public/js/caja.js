@@ -1,73 +1,72 @@
 $(document).ready(function () {
   // Función para cargar y mostrar todas las cajas
   function cargarCajaUsuario() {
-  const usuarioJSON = sessionStorage.getItem('usuario');
-  const token = sessionStorage.getItem('authToken');
+    const usuarioJSON = sessionStorage.getItem('usuario');
+    const token = sessionStorage.getItem('authToken');
 
-  if (!usuarioJSON || !token) {
-    $('#infoCaja').html('');
-    $('#tablaCaja tbody').html('<tr><td colspan="9" class="text-center text-danger">No hay sesión activa.</td></tr>');
-    return;
-  }
-
-  const payload = parseJwt(token);
-  if (!payload || !payload.id) {
-    $('#infoCaja').html('');
-    $('#tablaCaja tbody').html('<tr><td colspan="9" class="text-center text-danger">Token inválido.</td></tr>');
-    return;
-  }
-
-  const id_usuario = payload.id;
-
-  // 1. Mostrar info de la caja abierta
-  $.get(`/api/caja/abierta?id_usuario=${id_usuario}`, function (res) {
-    if (!res.success) {
+    if (!usuarioJSON || !token) {
       $('#infoCaja').html('');
+      $('#tablaCaja tbody').html('<tr><td colspan="9" class="text-center text-danger">No hay sesión activa.</td></tr>');
       return;
     }
 
-    const c = res.caja;
-    const card = `
-      <div class="card shadow-sm border-primary">
-        <div class="card-body">
-          <h5 class="card-title mb-2">Caja Abierta por: ${c.nombre_usuario}</h5>
-          <p class="mb-1"><strong>N° Caja:</strong> ${c.numero_caja}</p>
-          <p class="mb-1"><strong>Fecha:</strong> ${c.fecha_apertura} &nbsp; <strong>Hora:</strong> ${c.hora_apertura}</p>
+    const payload = parseJwt(token);
+    if (!payload || !payload.id) {
+      $('#infoCaja').html('');
+      $('#tablaCaja tbody').html('<tr><td colspan="9" class="text-center text-danger">Token inválido.</td></tr>');
+      return;
+    }
+
+    const id_usuario = payload.id;
+
+    // 1. Mostrar info de la caja abierta
+    $.get(`/api/caja/abierta?id_usuario=${id_usuario}`, function (res) {
+      if (!res.success) {
+        $('#infoCaja').html('');
+        return;
+      }
+
+      const c = res.caja;
+      const card = `
+        <div class="card shadow-sm border-primary">
+          <div class="card-body">
+            <h5 class="card-title mb-2">Caja Abierta por: ${c.nombre_usuario}</h5>
+            <p class="mb-1"><strong>N° Caja:</strong> ${c.numero_caja}</p>
+            <p class="mb-1"><strong>Fecha:</strong> ${c.fecha_apertura} &nbsp; <strong>Hora:</strong> ${c.hora_apertura}</p>
+          </div>
         </div>
-      </div>
-    `;
-    $('#infoCaja').html(card);
-  }).fail(function () {
-    $('#infoCaja').html('');
-  });
+      `;
+      $('#infoCaja').html(card);
+    }).fail(function () {
+      $('#infoCaja').html('');
+    });
 
-  // 2. Mostrar movimientos en tabla
-  $.get(`/api/caja/movimiento?id_usuario=${id_usuario}`, function (res) {
-    if (!res.success || !res.movimientos.length) {
-      $('#tablaCaja tbody').html('<tr><td colspan="9" class="text-center text-muted">No hay movimientos registrados.</td></tr>');
-      return;
-    }
+    // 2. Mostrar movimientos en tabla
+    $.get(`/api/caja/movimiento?id_usuario=${id_usuario}`, function (res) {
+      if (!res.success || !res.movimientos.length) {
+        $('#tablaCaja tbody').html('<tr><td colspan="9" class="text-center text-muted">No hay movimientos registrados.</td></tr>');
+        return;
+      }
 
-    const filas = res.movimientos.map(m => `
-      <tr>
-        <td>${m.id}</td>
-        <td>${m.fecha}</td>
-        <td>${m.hora}</td>
-        <td>${m.nombre_servicio}</td>
-        <td>${m.medio_pago}</td>
-        <td>$${parseFloat(m.monto).toLocaleString()}</td>
-        <td>${m.numero_caja}</td>
-        <td>${m.codigo ?? '—'}</td>
-        <td>${m.observaciones ?? '—'}</td>
-      </tr>
-    `).join('');
+      const filas = res.movimientos.map(m => `
+        <tr>
+          <td>${m.id}</td>
+          <td>${m.fecha}</td>
+          <td>${m.hora}</td>
+          <td>${m.nombre_servicio}</td>
+          <td>${m.medio_pago}</td>
+          <td>$${parseFloat(m.monto).toLocaleString()}</td>
+          <td>${m.numero_caja}</td>
+          <td>${m.codigo ?? '—'}</td>
+          <td>${m.observaciones ?? '—'}</td>
+        </tr>
+      `).join('');
 
-    $('#tablaCaja tbody').html(filas);
-  }).fail(function () {
-    $('#tablaCaja tbody').html('<tr><td colspan="9" class="text-center text-danger">Error al cargar movimientos.</td></tr>');
-  });
-}
-
+      $('#tablaCaja tbody').html(filas);
+    }).fail(function () {
+      $('#tablaCaja tbody').html('<tr><td colspan="9" class="text-center text-danger">Error al cargar movimientos.</td></tr>');
+    });
+  }
 
   // Helper para decodificar JWT
   function parseJwt(token) {
@@ -145,23 +144,21 @@ $(document).ready(function () {
   });
 
  $('#btnCerrarCaja').on('click', function () {
-    const id = localStorage.getItem('id_caja');
+    const estadoCaja = localStorage.getItem('estado_caja');
+    const idSesion = localStorage.getItem('id_aperturas_cierres');
 
-    if (!id) {
-      $('#mensaje').html('<div class="alert alert-warning">No hay caja abierta.</div>');
+    if (estadoCaja !== 'abierta' || !idSesion) {
+      $('#mensaje').html('<div class="alert alert-warning">No hay caja abierta para cerrar.</div>');
       return;
     }
 
-    // Función para decodificar JWT y obtener el payload
+    // Decodificar JWT
     function parseJwt(token) {
       try {
         const base64Url = token.split('.')[1];
         const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
         const jsonPayload = decodeURIComponent(
-          atob(base64)
-            .split('')
-            .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-            .join('')
+          atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')
         );
         return JSON.parse(jsonPayload);
       } catch (err) {
@@ -170,7 +167,6 @@ $(document).ready(function () {
       }
     }
 
-    // Obtener token y decodificar
     const token = sessionStorage.getItem('authToken');
     if (!token) {
       $('#mensaje').html('<div class="alert alert-danger">Sesión no válida. Inicia sesión nuevamente.</div>');
@@ -187,23 +183,31 @@ $(document).ready(function () {
       return;
     }
 
-    // Enviar datos al backend
+    // Confirmación opcional
+    if (!confirm('¿Estás seguro de cerrar la caja actual?')) return;
+
+    // Enviar solicitud al backend
     $.ajax({
       url: '/api/caja/cerrar',
       type: 'POST',
       contentType: 'application/json',
       data: JSON.stringify({
-        id_caja: id,
-        id_usuario_cierre: id_usuario_cierre
+        id_aperturas_cierres: parseInt(idSesion),
+        id_usuario_cierre: parseInt(id_usuario_cierre),
+        observaciones: 'Cierre manual desde interfaz' // puedes hacer esto dinámico si quieres
       }),
       success: function (data) {
         if (data.success) {
-          localStorage.removeItem('id_caja');
-          $('#mensaje').html('<div class="alert alert-info">Caja cerrada correctamente</div>');
+          // Limpiar estado de la caja
+          localStorage.removeItem('id_aperturas_cierres');
+          localStorage.removeItem('estado_caja');
+          localStorage.removeItem('numero_caja');
+
+          $('#mensaje').html('<div class="alert alert-success">Caja cerrada correctamente.</div>');
           $('#btnAbrirCaja').prop('disabled', false);
-          cargarCajas(); // Actualizar la tabla después de cerrar
+          cargarCajas(); // actualiza interfaz
         } else {
-          $('#mensaje').html('<div class="alert alert-danger">' + (data.error || 'Error desconocido') + '</div>');
+          $('#mensaje').html('<div class="alert alert-danger">' + (data.error || 'Error desconocido.') + '</div>');
         }
       },
       error: function (xhr, status, error) {
