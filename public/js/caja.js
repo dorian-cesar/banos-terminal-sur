@@ -2,7 +2,7 @@ $(document).ready(function () {
   const usuarioRaw = sessionStorage.getItem('usuario');
   const usuario = usuarioRaw ? JSON.parse(usuarioRaw) : null;
 
-  console.log("Usuario:", usuario); // esto muestra {username:..., role:...}
+  console.log("Usuario:", usuario);
 
   if (usuario?.role === 'admin') {
     $('#btnAdmin').show(); // Solo mostrar si es admin
@@ -137,7 +137,7 @@ $(document).ready(function () {
       monto_inicial: monto,
       observaciones: observaciones,
       id_usuario_apertura: id_usuario_apertura
-    }, function (res) {
+      }, function (res) {
       if (res.success) {
         localStorage.setItem('id_aperturas_cierres', res.id);
         localStorage.setItem('estado_caja', 'abierta');
@@ -147,7 +147,11 @@ $(document).ready(function () {
         $('#btnAbrirCaja').prop('disabled', true);
         cargarCajaUsuario(); 
       } else {
-        $('#mensaje').html('<div class="alert alert-danger">' + res.error + '</div>');
+        if (res.error === 'Ya existe una caja abierta para este número.') {
+          alert('La caja ya está abierta');
+        } else {
+          $('#mensaje').html('<div class="alert alert-danger">' + res.error + '</div>');
+        }
       }
     });
   });
@@ -228,15 +232,13 @@ $(document).ready(function () {
  $('#btnAdmin').on('click', function () {
     window.location.href = 'admin-cajas.html';
   });
-
-
   
-  // Mostrar mensaje si hay caja abierta
-  const id = localStorage.getItem('id_caja');
-  if (id) {
-    $('#mensajeCaja').html(`<div class="alert alert-info">Hay una caja abierta con ID: ${id}</div>`);
-    $('#btnAbrirCaja').prop('disabled', true);
-  }
+    // Deshabilitar botón si la caja ya está abierta
+    const estadoCaja = localStorage.getItem('estado_caja');
+    if (estadoCaja === 'abierta') {
+      $('#btnAbrirCaja').prop('disabled', true);
+      $('#mensajeCaja').html('<div class="alert alert-info">La caja ya está abierta.</div>');
+    }
   
   document.getElementById('btnVolver').addEventListener('click', () => {
     window.location.href = '/home.html';

@@ -1,5 +1,5 @@
-CREATE DATABASE IF NOT EXISTS modulo_banos;
-USE modulo_banos;
+CREATE DATABASE IF NOT EXISTS terminales;
+USE terminales;
 
 -- Tabla de usuarios
 CREATE TABLE users (
@@ -84,7 +84,7 @@ INSERT INTO users (id, username, email, password, role) VALUES
 INSERT INTO cajas (numero_caja, nombre, ubicacion) VALUES
 (1, 'Caja Principal', 'Entrada principal'),
 (2, 'Caja Secundaria', 'Área de duchas'),
-(77, 'Caja Terminal', 'Terminal de buses');
+(3, 'Caja Terminal', 'Terminal de buses');
 
 -- Insertar servicios disponibles
 INSERT INTO servicios (nombre, tipo, precio) VALUES
