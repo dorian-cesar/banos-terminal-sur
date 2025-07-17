@@ -78,9 +78,7 @@ $(document).ready(function () {
           <td>${m.hora}</td>
           <td>${m.nombre_servicio}</td>
           <td>${m.medio_pago}</td>
-          <td>$${parseFloat(m.monto).toLocaleString()}</td>
-          <td>${m.numero_caja}</td>
-          <td>${m.codigo ?? '—'}</td>
+          <td>$${parseFloat(m.monto).toLocaleString()}</td>      
           <td>${m.observaciones ?? '—'}</td>
         </tr>
       `;

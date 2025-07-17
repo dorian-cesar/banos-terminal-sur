@@ -141,10 +141,7 @@ exports.listarMovimientosPorUsuario = async (req, res) => {
          m.fecha,
          m.hora,
          m.monto,
-         m.medio_pago,
-         m.observaciones,
-         m.codigo,
-         m.numero_caja,
+         m.medio_pago,                        
          s.nombre AS nombre_servicio
        FROM movimientos m
        INNER JOIN servicios s ON s.id = m.id_servicio
