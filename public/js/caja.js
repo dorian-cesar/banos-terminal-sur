@@ -36,12 +36,19 @@ $(document).ready(function () {
       }
 
       const c = res.caja;
+      // Formatear fecha_apertura a dd-mm-aaaa
+      const fecha = new Date(c.fecha_apertura);
+      const dia = String(fecha.getUTCDate()).padStart(2, '0');
+      const mes = String(fecha.getUTCMonth() + 1).padStart(2, '0');
+      const anio = fecha.getUTCFullYear();
+      const fechaFormateada = `${dia}-${mes}-${anio}`;      
+
       const card = `
         <div class="card shadow-sm border-primary">
           <div class="card-body">
             <h5 class="card-title mb-2">Caja Abierta por: ${c.nombre_usuario}</h5>
             <p class="mb-1"><strong>N° Caja:</strong> ${c.numero_caja}</p>
-            <p class="mb-1"><strong>Fecha:</strong> ${c.fecha_apertura} &nbsp; <strong>Hora:</strong> ${c.hora_apertura}</p>
+            <p class="mb-1"><strong>Fecha:</strong> ${fechaFormateada} &nbsp; <strong>Hora:</strong> ${c.hora_apertura}</p>
           </div>
         </div>
       `;
@@ -57,10 +64,17 @@ $(document).ready(function () {
         return;
       }
 
-      const filas = res.movimientos.map(m => `
+      const filas = res.movimientos.map(m => {
+      const fecha = new Date(m.fecha);
+      const dia = String(fecha.getUTCDate()).padStart(2, '0');
+      const mes = String(fecha.getUTCMonth() + 1).padStart(2, '0');
+      const anio = fecha.getUTCFullYear();
+      const fechaFormateada = `${dia}-${mes}-${anio}`;
+
+      return `
         <tr>
           <td>${m.id}</td>
-          <td>${m.fecha}</td>
+          <td>${fechaFormateada}</td>
           <td>${m.hora}</td>
           <td>${m.nombre_servicio}</td>
           <td>${m.medio_pago}</td>
@@ -69,7 +83,8 @@ $(document).ready(function () {
           <td>${m.codigo ?? '—'}</td>
           <td>${m.observaciones ?? '—'}</td>
         </tr>
-      `).join('');
+      `;
+    }).join('');
 
       $('#tablaCaja tbody').html(filas);
     }).fail(function () {
