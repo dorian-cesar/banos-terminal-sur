@@ -14,10 +14,10 @@ router.get('/api/caja/abierta-por-usuario', cajaController.cargarCajaAbiertaPorU
 // Rutas para los movimientos
 router.post('/api/caja/movimientos', cajaController.registrarMovimiento);
 
-// /api/caja/movimiento?id_usuario=${id_usuario}
+// /api/caja/movimientos?id_usuario=${id_usuario}
 router.get('/api/caja/movimientos/por-usuario', cajaController.listarMovimientosPorUsuario);
 
-// /api/caja/movimiento?numero_caja=${numeroCaja}
+// /api/caja/movimientos?numero_caja=${numeroCaja}
 router.get('/api/caja/movimientos/por-caja', cajaController.listarMovimientosPorCaja);
 
 
