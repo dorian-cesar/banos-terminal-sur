@@ -380,7 +380,10 @@ exports.cerrarCaja = async (req, res) => {
 
     // Obtener datos adicionales para imprimir ticket
     const [[info]] = await pool.execute(`
-      SELECT ac.numero_caja, u.username AS nombre_usuario
+      SELECT 
+        ac.numero_caja,
+        ac.monto_inicial,
+        u.username AS nombre_usuario
       FROM aperturas_cierres ac
       INNER JOIN users u ON u.id = ac.id_usuario_cierre
       WHERE ac.id = ?
@@ -388,6 +391,7 @@ exports.cerrarCaja = async (req, res) => {
 
     // Imprimir ticket de cierre
     await imprimirCierreCaja({
+      monto_inicial: info.monto_inicial,
       total_efectivo,
       total_tarjeta,
       total_general: Number(total_efectivo) + Number(total_tarjeta),
@@ -401,6 +405,7 @@ exports.cerrarCaja = async (req, res) => {
       success: true,
       mensaje: 'Caja cerrada correctamente.',
       data: {
+        monto_inicial: info.monto_inicial,
         total_efectivo,
         total_tarjeta,
         total_general: Number(total_efectivo) + Number(total_tarjeta),

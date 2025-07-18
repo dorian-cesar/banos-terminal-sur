@@ -56,7 +56,10 @@ async function imprimirTicket({ Codigo, hora, fecha, tipo }) {
       `Código: ${Codigo}`,
       `Fecha : ${fechaFormateada}`,
       `Hora  : ${hora}`,
-      `Tipo  : ${tipo}`      
+      `Tipo  : ${tipo}`,
+      '',
+      ''
+
     ];
 
     lines.forEach(line => {
@@ -70,36 +73,54 @@ async function imprimirTicket({ Codigo, hora, fecha, tipo }) {
     fs.writeFileSync(filePath, pdfBytes);
 
     await print(filePath, { printer: 'POS58' });
-    fs.unlink(filePath, () => {});
-    console.log('✅ Ticket impreso con QR arriba.');
+    fs.unlink(filePath, () => {});    
 
   } catch (error) {
     console.error('🛑 Error en imprimirTicket:', error.message);
   }
 }
 
-async function imprimirCierreCaja({ total_efectivo, total_tarjeta, total_general, fecha_cierre, hora_cierre, numero_caja, nombre_usuario }) {
+async function imprimirCierreCaja({
+  total_efectivo,
+  total_tarjeta,
+  total_general,
+  monto_inicial,
+  fecha_cierre,
+  hora_cierre,
+  numero_caja,
+  nombre_usuario
+}) {
   try {
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([210, 500]); // A6
+    const page = pdfDoc.addPage([210, 700]); // A6 con margen inferior aumentado
 
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const fontSize = 12;
     const x = 20;
-    let y = 460;
+    let y = 660; // más espacio arriba
+
+    // Cálculo del saldo final
+    const saldo_final = Number(monto_inicial) + Number(total_general);
 
     const lines = [
       'CIERRE DE CAJA',
       '-------------------------',
-      `Caja  : N° ${numero_caja}`,
-      `Cerrado por: ${nombre_usuario}`,
-      `Fecha : ${fecha_cierre}`,
-      `Hora  : ${hora_cierre}`,
+      `Caja         : N° ${numero_caja}`,
+      `Cerrado por  : ${nombre_usuario}`,
+      `Fecha        : ${fecha_cierre}`,
+      `Hora         : ${hora_cierre}`,
       '',
-      `Total Efectivo : $${parseFloat(total_efectivo).toLocaleString()}`,
-      `Total Tarjeta  : $${parseFloat(total_tarjeta).toLocaleString()}`,
+      `Monto Inicial     : $${parseFloat(monto_inicial).toLocaleString()}`,
+      `Total Efectivo    : $${parseFloat(total_efectivo).toLocaleString()}`,
+      `Total Tarjeta     : $${parseFloat(total_tarjeta).toLocaleString()}`,
       '-------------------------',
-      `TOTAL GENERAL  : $${parseFloat(total_general).toLocaleString()}`
+      `TOTAL GENERAL     : $${parseFloat(total_general).toLocaleString()}`,      
+      '-------------------------',
+      `SALDO FINAL       : $${parseFloat(saldo_final).toLocaleString()}`,
+      '',
+      '.',
+      '',
+      ''
     ];
 
     lines.forEach(line => {
