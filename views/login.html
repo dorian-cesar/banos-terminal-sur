@@ -34,6 +34,31 @@
           <a href="/registro" class="registrar-button">Registrarse</a>
         </div> -->
       </form>
-    </main>    
+    </main> 
+    <button onclick="apagarSistema()" class="btn btn-danger" style="position:fixed; bottom:10px; left:10px; z-index:1000;">Apagar</button>  
+    <!-- Área invisible para activar modal de contraseña -->
+    <div id="desbloqueoTrigger" style="position:fixed; top:0; right:0; width:30px; height:30px; opacity:0;"></div>
+    <div id="modalDesbloqueo" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#000000cc; z-index:9999;">
+      <div style="width:300px; margin:15% auto; background:rgb(22, 2, 2); padding:20px; text-align:center;">
+        <h5>Salir del kiosko</h5>
+        <input type="password" id="claveDesbloqueo" class="form-control mb-3" placeholder="Contraseña">
+        <button onclick="desbloquear()" class="btn btn-warning">Desbloquear</button>
+        <button onclick="cerrarModal()" class="btn btn-secondary mt-2">Cancelar</button>
+        <div id="errorClave" class="text-danger mt-2" style="display:none;">Clave incorrecta</div>
+      </div>
+    </div> 
+    <script>
+      function apagarSistema() {
+        if (confirm("¿Estás seguro que deseas apagar el sistema?")) {
+          fetch('/api/apagar', { method: 'POST' })
+            .then(res => {
+              if (!res.ok) throw new Error('Error al apagar el sistema');
+            })
+            .catch(err => {
+              alert("No se pudo apagar el sistema: " + err.message);
+            });
+        }
+      }
+    </script>
   </body>
 </html>

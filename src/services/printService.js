@@ -57,9 +57,7 @@ async function imprimirTicket({ Codigo, hora, fecha, tipo }) {
       `Fecha : ${fechaFormateada}`,
       `Hora  : ${hora}`,
       `Tipo  : ${tipo}`,
-      '',
-      ''
-
+      '.'
     ];
 
     lines.forEach(line => {

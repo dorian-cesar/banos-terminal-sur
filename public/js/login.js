@@ -64,3 +64,28 @@ function cerrarSesion() {
     });
 }
 
+document.getElementById('desbloqueoTrigger').addEventListener('click', () => {
+  document.getElementById('modalDesbloqueo').style.display = 'block';
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey && e.altKey && e.key === 'd') {
+    document.getElementById('modalDesbloqueo').style.display = 'block';
+  }
+});
+
+function cerrarModal() {
+  document.getElementById('modalDesbloqueo').style.display = 'none';
+  document.getElementById('claveDesbloqueo').value = '';
+  document.getElementById('errorClave').style.display = 'none';
+}
+
+function desbloquear() {
+  const clave = document.getElementById('claveDesbloqueo').value;
+  if (clave === 'admin123') {
+    fetch('/api/salir-kiosko', { method: 'POST' });
+  } else {
+    document.getElementById('errorClave').style.display = 'block';
+  }
+}
+
