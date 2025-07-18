@@ -73,4 +73,45 @@ async function imprimirTicket({ Codigo, hora, fecha, tipo }) {
   }
 }
 
+async function imprimirCierreCaja({ total_efectivo, total_tarjeta, total_general, fecha_cierre, hora_cierre }) {
+  try {
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([210, 500]); // A6
+
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const fontSize = 12;
+    const x = 20;
+    let y = 460;
+
+    const lines = [
+      'CIERRE DE CAJA',
+      '-------------------------',
+      `Fecha  : ${fecha_cierre}`,
+      `Hora   : ${hora_cierre}`,
+      '',
+      `Total Efectivo : $${parseFloat(total_efectivo).toLocaleString()}`,
+      `Total Tarjeta  : $${parseFloat(total_tarjeta).toLocaleString()}`,
+      '-------------------------',
+      `TOTAL GENERAL  : $${parseFloat(total_general).toLocaleString()}`
+    ];
+
+    lines.forEach(line => {
+      page.drawText(line, { x, y, size: fontSize, font });
+      y -= 20;
+    });
+
+    const pdfBytes = await pdfDoc.save();
+    const filePath = path.join(os.tmpdir(), `cierre-caja-${Date.now()}.pdf`);
+    fs.writeFileSync(filePath, pdfBytes);
+
+    await print(filePath, { printer: 'POS58' });
+    fs.unlink(filePath, () => {});
+    console.log('✅ Ticket de cierre impreso correctamente.');
+  } catch (error) {
+    console.error('🛑 Error al imprimir ticket de cierre:', error.message);
+  }
+}
+
 module.exports = { imprimirTicket };
+
+module.exports = { imprimirCierreCaja };

@@ -1,5 +1,7 @@
 const pool = require('../../db_config/db.js');
 require('dotenv').config(); 
+const { imprimirCierreCaja } = require('../services/printService');
+
 
 exports.abrirCaja = async (req, res) => {
   const { monto_inicial, observaciones, id_usuario_apertura } = req.body;
@@ -377,6 +379,14 @@ exports.cerrarCaja = async (req, res) => {
         id_aperturas_cierres,
       ]
     );
+
+    await imprimirCierreCaja({
+      total_efectivo,
+      total_tarjeta,
+      total_general: total_efectivo + total_tarjeta,
+      fecha_cierre,
+      hora_cierre
+    });
 
     res.json({
       success: true,
