@@ -131,7 +131,6 @@ exports.listarCajaAbierta = async (req, res) => {
   }
 };
 
-
 exports.cargarCajaAbiertaPorUsuario = async (req, res) => {
   const id_usuario = req.query.id_usuario;
 

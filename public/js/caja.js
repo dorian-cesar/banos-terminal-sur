@@ -60,8 +60,9 @@ $(document).ready(function () {
       $('#infoCajaUser').html('');
     });
 
-    // ✅ 2. Mostrar movimientos de este usuario
-    $.get(`/api/caja/movimientos/por-usuario?id_usuario=${id_usuario}`, function (res) {
+    // ✅ 2. Mostrar movimientos por caja     
+    $.get(`/api/caja/movimientos/por-caja?numero_caja=${numeroCaja}`, function (res) {
+
       if (!res.success || !res.movimientos.length) {
         $('#tablaCaja tbody').html('<tr><td colspan="9" class="text-center text-muted">No hay movimientos registrados.</td></tr>');
         return;
@@ -81,7 +82,8 @@ $(document).ready(function () {
             <td>${m.hora}</td>
             <td>${m.nombre_servicio}</td>
             <td>${m.medio_pago}</td>
-            <td>$${parseFloat(m.monto).toLocaleString()}</td>            
+            <td>$${parseFloat(m.monto).toLocaleString()}</td>
+            <td>${m.nombre_usuario}</td>            
           </tr>
         `;
       }).join('');
