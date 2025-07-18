@@ -6,13 +6,19 @@ const servicioController = require('../src/controllers/servicioController');
 // Rutas para abrir caja
 router.post('/api/caja/abrir', cajaController.abrirCaja);
 
-router.get('/api/caja/abierta', cajaController.cargarCajaAbiertaPorUsuario);
+router.get('/api/caja/abierta', cajaController.listarCajaAbierta);
+
+router.get('/api/caja/abierta-por-usuario', cajaController.cargarCajaAbiertaPorUsuario);
 
 
 // Rutas para los movimientos
-router.post('/api/caja/movimiento', cajaController.registrarMovimiento);
+router.post('/api/caja/movimientos', cajaController.registrarMovimiento);
 
-router.get('/api/caja/movimiento', cajaController.listarMovimientosPorUsuario);
+// /api/caja/movimiento?id_usuario=${id_usuario}
+router.get('/api/caja/movimientos/por-usuario', cajaController.listarMovimientosPorUsuario);
+
+// /api/caja/movimiento?numero_caja=${numeroCaja}
+router.get('/api/caja/movimientos/por-caja', cajaController.listarMovimientosPorCaja);
 
 
 // Ruta para cerrar caja

@@ -9,39 +9,42 @@ $(document).ready(function () {
   }
   
   // Función para cargar y mostrar todas las cajas
-  function cargarCajaUsuario() {
+  function cargarCaja() {
     const usuarioJSON = sessionStorage.getItem('usuario');
     const token = sessionStorage.getItem('authToken');
 
     if (!usuarioJSON || !token) {
-      $('#infoCaja').html('');
+      $('#infoCajaUser').html('');
       $('#tablaCaja tbody').html('<tr><td colspan="9" class="text-center text-danger">No hay sesión activa.</td></tr>');
       return;
     }
 
     const payload = parseJwt(token);
     if (!payload || !payload.id) {
-      $('#infoCaja').html('');
+      $('#infoCajaUser').html('');
       $('#tablaCaja tbody').html('<tr><td colspan="9" class="text-center text-danger">Token inválido.</td></tr>');
       return;
     }
 
     const id_usuario = payload.id;
 
-    // 1. Mostrar info de la caja abierta
-    $.get(`/api/caja/abierta?id_usuario=${id_usuario}`, function (res) {
+    // ✅ 1. Mostrar caja abierta del sistema
+    const numeroCaja = localStorage.getItem('numero_caja');
+    if (!numeroCaja) return;
+
+    $.get(`/api/caja/abierta?numero_caja=${numeroCaja}`, function (res) {
+
       if (!res.success) {
-        $('#infoCaja').html('');
+        $('#infoCajaUser').html('');
         return;
       }
 
       const c = res.caja;
-      // Formatear fecha_apertura a dd-mm-aaaa
       const fecha = new Date(c.fecha_apertura);
-      const dia = String(fecha.getUTCDate()).padStart(2, '0');
-      const mes = String(fecha.getUTCMonth() + 1).padStart(2, '0');
-      const anio = fecha.getUTCFullYear();
-      const fechaFormateada = `${dia}-${mes}-${anio}`;      
+      const dia = String(fecha.getDate()).padStart(2, '0');
+      const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+      const anio = fecha.getFullYear();
+      const fechaFormateada = `${dia}-${mes}-${anio}`;
 
       const card = `
         <div class="card shadow-sm border-primary">
@@ -52,36 +55,36 @@ $(document).ready(function () {
           </div>
         </div>
       `;
-      $('#infoCaja').html(card);
+      $('#infoCajaUser').html(card);
     }).fail(function () {
-      $('#infoCaja').html('');
+      $('#infoCajaUser').html('');
     });
 
-    // 2. Mostrar movimientos en tabla
-    $.get(`/api/caja/movimiento?id_usuario=${id_usuario}`, function (res) {
+    // ✅ 2. Mostrar movimientos de este usuario
+    $.get(`/api/caja/movimientos/por-usuario?id_usuario=${id_usuario}`, function (res) {
       if (!res.success || !res.movimientos.length) {
         $('#tablaCaja tbody').html('<tr><td colspan="9" class="text-center text-muted">No hay movimientos registrados.</td></tr>');
         return;
       }
 
       const filas = res.movimientos.map(m => {
-      const fecha = new Date(m.fecha);
-      const dia = String(fecha.getUTCDate()).padStart(2, '0');
-      const mes = String(fecha.getUTCMonth() + 1).padStart(2, '0');
-      const anio = fecha.getUTCFullYear();
-      const fechaFormateada = `${dia}-${mes}-${anio}`;
+        const fecha = new Date(m.fecha);
+        const dia = String(fecha.getDate()).padStart(2, '0');
+        const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+        const anio = fecha.getFullYear();
+        const fechaFormateada = `${dia}-${mes}-${anio}`;
 
-      return `
-        <tr>
-          <td>${m.id}</td>
-          <td>${fechaFormateada}</td>
-          <td>${m.hora}</td>
-          <td>${m.nombre_servicio}</td>
-          <td>${m.medio_pago}</td>
-          <td>$${parseFloat(m.monto).toLocaleString()}</td>            
-        </tr>
-      `;
-    }).join('');
+        return `
+          <tr>
+            <td>${m.id}</td>
+            <td>${fechaFormateada}</td>
+            <td>${m.hora}</td>
+            <td>${m.nombre_servicio}</td>
+            <td>${m.medio_pago}</td>
+            <td>$${parseFloat(m.monto).toLocaleString()}</td>            
+          </tr>
+        `;
+      }).join('');
 
       $('#tablaCaja tbody').html(filas);
     }).fail(function () {
@@ -100,10 +103,10 @@ $(document).ready(function () {
   }
 
   // Cargar cajas al iniciar
-  cargarCajaUsuario();
+  cargarCaja();
 
   // Botón para actualizar la lista
-  $('#btnActualizar').on('click', cargarCajaUsuario);
+  $('#btnActualizar').on('click', cargarCaja);
 
  $('#formInicioCaja').on('submit', function (e) {
     e.preventDefault();
@@ -157,7 +160,7 @@ $(document).ready(function () {
         $('#modalInicio').modal('hide');
         $('#mensaje').html('<div class="alert alert-success">Caja abierta correctamente</div>');
         $('#btnAbrirCaja').prop('disabled', true);
-        cargarCajaUsuario(); 
+        cargarCaja(); 
       } else {
         if (res.error === 'Ya existe una caja abierta para este número.') {
           alert('La caja ya está abierta');

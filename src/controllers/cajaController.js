@@ -84,6 +84,54 @@ exports.abrirCaja = async (req, res) => {
   }
 };
 
+exports.listarCajaAbierta = async (req, res) => {
+  const { numero_caja } = req.query;
+
+  if (!numero_caja) {
+    return res.status(400).json({
+      success: false,
+      message: 'Falta el número de caja',
+    });
+  }
+
+  try {
+    const [result] = await pool.execute(
+      `SELECT 
+         ac.id AS id_aperturas_cierres,
+         ac.numero_caja,
+         u.username AS nombre_usuario,
+         ac.fecha_apertura,
+         ac.hora_apertura,
+         ac.estado
+       FROM aperturas_cierres ac
+       INNER JOIN users u ON ac.id_usuario_apertura = u.id
+       WHERE ac.numero_caja = ? AND ac.estado = 'abierta'
+       ORDER BY ac.id DESC
+       LIMIT 1`,
+      [numero_caja]
+    );
+
+    if (result.length === 0) {
+      return res.json({
+        success: false,
+        message: 'No hay caja abierta para este número',
+      });
+    }
+
+    return res.json({
+      success: true,
+      caja: result[0],
+    });
+  } catch (error) {
+    console.error('Error al obtener la caja abierta:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor',
+    });
+  }
+};
+
+
 exports.cargarCajaAbiertaPorUsuario = async (req, res) => {
   const id_usuario = req.query.id_usuario;
 
@@ -154,6 +202,56 @@ exports.listarMovimientosPorUsuario = async (req, res) => {
   } catch (err) {
     console.error('Error al obtener movimientos:', err);
     res.status(500).json({ success: false, error: 'Error al listar movimientos.' });
+  }
+};
+
+exports.listarMovimientosPorCaja = async (req, res) => {
+  const numero_caja = req.query.numero_caja;
+
+  if (!numero_caja || isNaN(numero_caja)) {
+    return res.status(400).json({ success: false, error: 'Número de caja inválido.' });
+  }
+
+  try {
+    // Verificar si hay una caja abierta para ese número
+    const [cajaAbierta] = await pool.execute(
+      `SELECT id 
+       FROM aperturas_cierres 
+       WHERE numero_caja = ? AND estado = 'abierta' 
+       ORDER BY id DESC LIMIT 1`,
+      [numero_caja]
+    );
+
+    if (cajaAbierta.length === 0) {
+      return res.json({ success: false, mensaje: 'No hay caja abierta para este número.' });
+    }
+
+    const id_aperturas_cierres = cajaAbierta[0].id;
+
+    // Obtener movimientos asociados a la sesión abierta
+    const [movimientos] = await pool.execute(
+      `SELECT 
+         m.id,
+         m.codigo,
+         m.fecha,
+         m.hora,
+         m.monto,
+         m.medio_pago,
+         s.nombre AS nombre_servicio,
+         s.tipo AS tipo_servicio,
+         u.username AS nombre_usuario
+       FROM movimientos m
+       INNER JOIN servicios s ON s.id = m.id_servicio
+       INNER JOIN users u ON u.id = m.id_usuario
+       WHERE m.id_aperturas_cierres = ?
+       ORDER BY m.fecha DESC, m.hora DESC`,
+      [id_aperturas_cierres]
+    );
+
+    res.json({ success: true, movimientos });
+  } catch (err) {
+    console.error('Error al listar movimientos por caja:', err);
+    res.status(500).json({ success: false, error: 'Error interno al listar movimientos.' });
   }
 };
 
