@@ -5,6 +5,11 @@ const { PDFDocument, StandardFonts } = require('pdf-lib');
 const QRCode = require('qrcode');
 const { print } = require('pdf-to-printer');
 
+module.exports = {
+  imprimirTicket,
+  imprimirCierreCaja
+};
+
 async function imprimirTicket({ Codigo, hora, fecha, tipo }) {
   try {
     if (!Codigo || !tipo) throw new Error('Campos requeridos faltantes');
@@ -73,7 +78,7 @@ async function imprimirTicket({ Codigo, hora, fecha, tipo }) {
   }
 }
 
-async function imprimirCierreCaja({ total_efectivo, total_tarjeta, total_general, fecha_cierre, hora_cierre }) {
+async function imprimirCierreCaja({ total_efectivo, total_tarjeta, total_general, fecha_cierre, hora_cierre, numero_caja, nombre_usuario }) {
   try {
     const pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage([210, 500]); // A6
@@ -86,8 +91,10 @@ async function imprimirCierreCaja({ total_efectivo, total_tarjeta, total_general
     const lines = [
       'CIERRE DE CAJA',
       '-------------------------',
-      `Fecha  : ${fecha_cierre}`,
-      `Hora   : ${hora_cierre}`,
+      `Caja  : N° ${numero_caja}`,
+      `Cerrado por: ${nombre_usuario}`,
+      `Fecha : ${fecha_cierre}`,
+      `Hora  : ${hora_cierre}`,
       '',
       `Total Efectivo : $${parseFloat(total_efectivo).toLocaleString()}`,
       `Total Tarjeta  : $${parseFloat(total_tarjeta).toLocaleString()}`,
@@ -112,6 +119,3 @@ async function imprimirCierreCaja({ total_efectivo, total_tarjeta, total_general
   }
 }
 
-module.exports = { imprimirTicket };
-
-module.exports = { imprimirCierreCaja };

@@ -349,11 +349,9 @@ exports.cerrarCaja = async (req, res) => {
       [id_aperturas_cierres]
     );
 
-    // Valores por defecto si no hubo ventas
     const total_efectivo = totales.total_efectivo || 0;
     const total_tarjeta = totales.total_tarjeta || 0;
 
-    // Obtener fecha y hora actuales
     const now = new Date();
     const fecha_cierre = now.toISOString().split('T')[0];
     const hora_cierre = now.toTimeString().split(':').slice(0, 2).join(':');
@@ -380,12 +378,23 @@ exports.cerrarCaja = async (req, res) => {
       ]
     );
 
+    // Obtener datos adicionales para imprimir ticket
+    const [[info]] = await pool.execute(`
+      SELECT ac.numero_caja, u.username AS nombre_usuario
+      FROM aperturas_cierres ac
+      INNER JOIN users u ON u.id = ac.id_usuario_cierre
+      WHERE ac.id = ?
+    `, [id_aperturas_cierres]);
+
+    // Imprimir ticket de cierre
     await imprimirCierreCaja({
       total_efectivo,
       total_tarjeta,
-      total_general: total_efectivo + total_tarjeta,
+      total_general: Number(total_efectivo) + Number(total_tarjeta),
       fecha_cierre,
-      hora_cierre
+      hora_cierre,
+      numero_caja: info.numero_caja,
+      nombre_usuario: info.nombre_usuario
     });
 
     res.json({
@@ -394,7 +403,7 @@ exports.cerrarCaja = async (req, res) => {
       data: {
         total_efectivo,
         total_tarjeta,
-        total_general: total_efectivo + total_tarjeta,
+        total_general: Number(total_efectivo) + Number(total_tarjeta),
         fecha_cierre,
         hora_cierre,
       },
