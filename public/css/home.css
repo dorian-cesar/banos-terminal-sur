@@ -47,3 +47,9 @@ nav h1 {
   width: 102px;
   height: 36px;
 }
+
+.hg-button {
+  color: black !important;
+  font-weight: bold;
+  font-size: 18px;
+}

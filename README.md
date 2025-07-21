@@ -29,12 +29,5 @@ C:\Users\PC\AppData\Roaming\npm\pm2.cmd resurrect
 Nombra el acceso directo como "Arranque PM2".
 
 
-Lanzar el frontend en pantalla completa con Chrome/Edge en modo kiosk
-Usar archivo .bat con delay
-Crea un archivo llamado, por ejemplo:
-abrir-kiosko.bat con este contenido:
 
-timeout /t 10 >nul
-start "" "C:\Program Files\Google\Chrome\Application\chrome.exe" --kiosk http://localhost:8080
-
-Copia ese .bat dentro de la carpeta shell:startup.
+"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --app=http://localhost:8080 --touch-events=enabled

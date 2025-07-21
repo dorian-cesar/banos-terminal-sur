@@ -117,3 +117,9 @@ nav h1 {
   color: #2699fb;
   font-size: 14px;
 }
+
+.hg-button {
+  color: black !important;
+  font-weight: bold;
+  font-size: 18px;
+}

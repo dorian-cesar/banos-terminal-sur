@@ -200,6 +200,7 @@ async function continuarConPago(metodoPago) {
     hora,
     fecha,
     tipo,
+    valor,
     qrBase64
   };
 

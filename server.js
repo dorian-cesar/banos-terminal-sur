@@ -171,17 +171,4 @@ async function startServer () {
   }
 }
 
-const { exec } = require('child_process');
-
-function abrirKiosko() {
-  const url = 'http://localhost:8080';
-  const chromePath = '"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"';
-  exec(`${chromePath} --kiosk ${url}`, (err) => {
-    if (err) console.error('No se pudo abrir Chrome:', err);
-  });
-}
-
-
-
 startServer();
-abrirKiosko();

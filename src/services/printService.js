@@ -10,7 +10,7 @@ module.exports = {
   imprimirCierreCaja
 };
 
-async function imprimirTicket({ Codigo, hora, fecha, tipo }) {
+async function imprimirTicket({ Codigo, hora, fecha, tipo, valor }) {
   try {
     if (!Codigo || !tipo) throw new Error('Campos requeridos faltantes');
 
@@ -57,6 +57,7 @@ async function imprimirTicket({ Codigo, hora, fecha, tipo }) {
       `Fecha : ${fechaFormateada}`,
       `Hora  : ${hora}`,
       `Tipo  : ${tipo}`,
+      `Valor : ${valor}`,
       '.'
     ];
 

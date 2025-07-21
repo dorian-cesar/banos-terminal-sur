@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="/css/caja.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/simple-keyboard/3.8.67/css/index.min.css"> 
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <style>
     body {
@@ -134,11 +135,11 @@
           <form id="formInicioCaja">
             <div class="form-group mb-3">
               <label for="monto_inicial_modal">Monto Inicial</label>
-              <input type="number" step="0.01" id="monto_inicial_modal" name="monto_inicial" required class="form-control" />
+              <input type="text" id="monto_inicial_modal" name="monto_inicial" required class="form-control usar-teclado" inputmode="numeric" pattern="[0-9]*" placeholder="Ej: $10000" />
             </div>
             <div class="form-group mb-3">
               <label for="observaciones_modal">Observaciones</label>
-              <textarea id="observaciones_modal" name="observaciones" rows="3" class="form-control"></textarea>
+              <textarea id="observaciones_modal" name="observaciones" rows="3" class="form-control usar-teclado"></textarea>
             </div>
             <button type="submit" class="btn w-100">Abrir Caja</button>
           </form>
@@ -147,7 +148,25 @@
     </div>
   </div>
 
+  <!-- Contenedor del teclado -->
+  <div id="tecladoContainer" style="display: none; position: fixed; bottom: 0; width: 100%; z-index: 9999; background: #fff; box-shadow: 0 -2px 10px rgba(0,0,0,0.3);">
+    <div class="simple-keyboard"></div>
+  </div>  
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="/js/caja.js"></script>
+  <!-- Scripts para teclado -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/simple-keyboard/3.8.67/index.min.js"></script>
+  <script src="/js/teclado.js"></script>
+  <script>
+    tecladoVirtual.init();
+
+    // Activar el teclado en cualquier input con clase 'usar-teclado'
+    document.querySelectorAll('.usar-teclado').forEach(input => {
+      input.addEventListener('focus', () => {
+        tecladoVirtual.show(input);
+      });
+    });
+  </script>
 </body>
 </html>

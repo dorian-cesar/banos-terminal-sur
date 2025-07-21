@@ -494,3 +494,9 @@ td {
 .swal2-container {
   z-index: 10000 !important;
 }
+
+.hg-button {
+  color: black !important;
+  font-weight: bold;
+  font-size: 18px;
+}
