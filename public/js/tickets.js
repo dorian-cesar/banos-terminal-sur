@@ -315,8 +315,7 @@ function printQR() {
     alert("No hay código QR generado para imprimir.");
     return;
   }
-
-  // Obtener el precio desde restroom.js
+  
   const precio =
     restroom[tipoSeleccionado] !== undefined
       ? `$${restroom[tipoSeleccionado]}`
