@@ -5,11 +5,6 @@ const parrafoHora = document.getElementById("hora");
 const parrafoTipo = document.getElementById("tipo");
 const botonesQR = document.querySelectorAll(".generarQR");
 
-const restroom = {
-  BAÑO: 500,
-  DUCHA: 4000
-};
-
 const QR = new QRCode(contenedorQR);
 QR.makeCode("wit");
 
@@ -34,10 +29,66 @@ async function cargarServicios() {
 
     serviciosDisponibles = {};
 
+    // Primero llenar serviciosDisponibles
     data.servicios.forEach(s => {
-      serviciosDisponibles[s.tipo] = {        
+      serviciosDisponibles[s.tipo] = {
         precio: parseFloat(s.precio)
       };
+    });
+
+    // Luego generar los botones
+    const contenedor = document.getElementById("btns-container");
+    contenedor.innerHTML = "";
+
+    Object.entries(serviciosDisponibles).forEach(([tipo, info]) => {
+      // Generar clase dinámica según el tipo
+      const claseTipo = `btn-genera-${tipo.toLowerCase()}`;
+
+      const btn = document.createElement("button");
+      btn.className = `${claseTipo} lg-button generarQR`;
+      btn.setAttribute("data-tipo", tipo);
+      btn.innerHTML = `
+        ${tipo} <br />
+        <span class="precio">$${info.precio.toLocaleString("es-CL")}</span>
+      `;
+      contenedor.appendChild(btn);
+    });
+
+    // Reasignar eventos a los botones generados
+    document.querySelectorAll(".generarQR").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+
+        const estado_caja = localStorage.getItem('estado_caja');
+        const id_aperturas_cierres = localStorage.getItem('id_aperturas_cierres');
+
+        if (estado_caja !== 'abierta') {
+          alert('Por favor, primero debe abrir la caja antes de generar un QR.');
+          return;
+        }
+
+        const fechaHoraAct = new Date();
+        const horaStr = `${fechaHoraAct.getHours().toString().padStart(2, '0')}:${fechaHoraAct.getMinutes().toString().padStart(2, '0')}:${fechaHoraAct.getSeconds().toString().padStart(2, '0')}`;
+        const fechaStr = fechaHoraAct.toISOString().split("T")[0];
+        const tipoStr = btn.dataset.tipo;
+        const numeroT = generarTokenNumerico();
+        const valor = serviciosDisponibles[tipoStr]?.precio || 0;
+
+        datosPendientes = {
+          Codigo: numeroT,
+          hora: horaStr,
+          fecha: fechaStr,
+          tipo: tipoStr,
+          valor: valor,
+          id_caja: id_aperturas_cierres,
+          estado_caja
+        };
+
+        botonActivo = btn;
+        btn.classList.add("disabled");
+
+        document.getElementById("modalPago").style.display = "flex";
+      });
     });
 
     console.log("Servicios cargados:", serviciosDisponibles);
@@ -50,42 +101,6 @@ async function cargarServicios() {
 
 // Llamar al cargar la página
 cargarServicios();
-
-botonesQR.forEach((btn) => {
-  btn.addEventListener("click", (e) => {
-    e.preventDefault();
-
-    // Validación de estado_caja en localStorage
-    const estado_caja = localStorage.getItem('estado_caja');
-    const id_aperturas_cierres = localStorage.getItem('id_aperturas_cierres')
-    if (estado_caja !== 'abierta') {
-        alert('Por favor, primero debe abrir la caja antes de generar un QR.');
-        return;
-    }
-
-    const fechaHoraAct = new Date();
-    const horaStr = `${fechaHoraAct.getHours().toString().padStart(2, '0')}:${fechaHoraAct.getMinutes().toString().padStart(2, '0')}:${fechaHoraAct.getSeconds().toString().padStart(2, '0')}`;
-    const fechaStr = fechaHoraAct.toISOString().split("T")[0];
-    const tipoStr = btn.dataset.tipo;
-    const numeroT = generarTokenNumerico();    
-    const valor = restroom[tipoStr] || 0;           
-
-    datosPendientes = {
-      Codigo: numeroT,
-      hora: horaStr,
-      fecha: fechaStr,
-      tipo: tipoStr,
-      valor: valor,       
-      id_caja: id_aperturas_cierres,
-      estado_caja      
-    };
-
-    botonActivo = btn;    
-    btn.classList.add("disabled");
-
-    document.getElementById("modalPago").style.display = "flex";
-  });
-});
 
 function cerrarModalPago() {
   document.getElementById("modalPago").style.display = "none";
