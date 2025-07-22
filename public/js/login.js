@@ -63,4 +63,3 @@ function cerrarSesion() {
       alert('Error al cerrar sesión.');
     });
 }
-

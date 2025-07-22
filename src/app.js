@@ -106,4 +106,20 @@ process.on('unhandledRejection', (reason, promise) => {
   logger.error('❌ unhandledRejection:', reason);
 });
 
+app.post('/api/apagar', (req, res) => {
+  const { exec } = require('child_process');
+  exec('shutdown /s /t 0', (err) => {
+    if (err) return res.status(500).json({ success: false, error: 'No se pudo apagar' });
+    res.json({ success: true });
+  });
+});
+
+app.post('/api/salir-kiosko', (req, res) => {
+  const { exec } = require('child_process');
+  exec('taskkill /IM chrome.exe /F', (err) => {
+    if (err) return res.status(500).json({ success: false, error: 'No se pudo cerrar Chrome' });
+    res.json({ success: true });
+  });
+});
+
 module.exports = app;

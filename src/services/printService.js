@@ -10,7 +10,7 @@ module.exports = {
   imprimirCierreCaja
 };
 
-async function imprimirTicket({ Codigo, hora, fecha, tipo }) {
+async function imprimirTicket({ Codigo, hora, fecha, tipo, valor }) {
   try {
     if (!Codigo || !tipo) throw new Error('Campos requeridos faltantes');
 
@@ -33,7 +33,7 @@ async function imprimirTicket({ Codigo, hora, fecha, tipo }) {
     const qrWidth = 150;
     const qrHeight = 150;
     const qrX = (210 - qrWidth) / 2;
-    const qrY = 320; // altura alta, para dejar espacio al texto
+    const qrY = 320;
 
     const qrDataURL = await QRCode.toDataURL(Codigo);
     const qrImageBytes = Buffer.from(qrDataURL.split(',')[1], 'base64');
@@ -49,31 +49,34 @@ async function imprimirTicket({ Codigo, hora, fecha, tipo }) {
     // ========================
     // 2. Dibujar texto debajo del QR
     // ========================
-    let y = qrY - 30; // espacio debajo del QR
+    let y = qrY - 30;
     const lines = [
       'Ticket de Acceso',
       '-------------------------',
       `Código: ${Codigo}`,
       `Fecha : ${fechaFormateada}`,
       `Hora  : ${hora}`,
-      `Tipo  : ${tipo}`,
-      '',
-      ''
-
+      `Tipo  : ${tipo}`
     ];
+
+    // Agregar valor solo si está definido y no es null
+    if (valor !== undefined && valor !== null) {
+      lines.push(`Valor : ${valor}`);
+    }
+
+    lines.push('.');
 
     lines.forEach(line => {
       page.drawText(line, { x, y, size: fontSize, font });
       y -= 20;
     });
 
-    // Guardar y enviar a impresión
     const pdfBytes = await pdfDoc.save();
     const filePath = path.join(os.tmpdir(), `ticket-${Date.now()}.pdf`);
     fs.writeFileSync(filePath, pdfBytes);
 
     await print(filePath, { printer: 'POS58' });
-    fs.unlink(filePath, () => {});    
+    fs.unlink(filePath, () => {});
 
   } catch (error) {
     console.error('🛑 Error en imprimirTicket:', error.message);

@@ -235,7 +235,7 @@ $(document).ready(function () {
 
           $('#mensaje').html('<div class="alert alert-success">Caja cerrada correctamente.</div>');
           $('#btnAbrirCaja').prop('disabled', false);
-          cargarCajas(); // actualiza interfaz
+          cargarCaja(); // actualiza interfaz
         } else {
           $('#mensaje').html('<div class="alert alert-danger">' + (data.error || 'Error desconocido.') + '</div>');
         }

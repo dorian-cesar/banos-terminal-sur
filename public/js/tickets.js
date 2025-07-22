@@ -100,8 +100,9 @@ function cerrarModalPago() {
 async function continuarConPago(metodoPago) {
   if (!datosPendientes) return;
 
-  const { Codigo, hora, fecha, tipo, valor, id_caja } = datosPendientes;
+  const { Codigo, hora, fecha, tipo, valor } = datosPendientes;
   const estado_caja = localStorage.getItem('estado_caja');
+  const datos = { Codigo, hora, fecha, tipo, valor }
 
 
   // Validación y pago con tarjeta
@@ -170,6 +171,7 @@ async function continuarConPago(metodoPago) {
 
   const id_usuario = jwtPayload.id;
 
+  await callApi(datos);
   // Registrar movimiento en la base de datos
   await fetch('/api/caja/movimientos', {
     method: 'POST',
@@ -200,6 +202,7 @@ async function continuarConPago(metodoPago) {
     hora,
     fecha,
     tipo,
+    valor,
     qrBase64
   };
 
@@ -314,8 +317,7 @@ function printQR() {
     alert("No hay código QR generado para imprimir.");
     return;
   }
-
-  // Obtener el precio desde restroom.js
+  
   const precio =
     restroom[tipoSeleccionado] !== undefined
       ? `$${restroom[tipoSeleccionado]}`
