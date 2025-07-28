@@ -246,9 +246,9 @@ $(document).ready(function () {
       });
   });
   
- $('#btnAdmin').on('click', function () {
-    window.location.href = 'admin-cajas.html';
-  });
+//  $('#btnAdmin').on('click', function () {
+//     window.location.href = 'admin-cajas.html';
+//   });
   
     // Deshabilitar botón si la caja ya está abierta
     const estadoCaja = localStorage.getItem('estado_caja');
