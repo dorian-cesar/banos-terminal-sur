@@ -146,7 +146,7 @@ $(document).ready(function () {
     const id_usuario_apertura = payload.id;
 
     if (!monto || isNaN(monto) || parseFloat(monto) <= 0) {
-      $('#mensaje').html('<div class="alert alert-danger">El monto inicial debe ser un número mayor a 0.</div>');
+      alert('El monto inicial debe ser un número mayor a 0.');
       return;
     }
 
@@ -156,94 +156,94 @@ $(document).ready(function () {
       id_usuario_apertura: id_usuario_apertura
       }, function (res) {
       if (res.success) {
-        localStorage.setItem('id_aperturas_cierres', res.id);
-        localStorage.setItem('estado_caja', 'abierta');
-        localStorage.setItem('numero_caja', res.numero_caja); 
-        $('#modalInicio').modal('hide');
-        $('#mensaje').html('<div class="alert alert-success">Caja abierta correctamente</div>');
-        $('#btnAbrirCaja').prop('disabled', true);
-        cargarCaja(); 
+          localStorage.setItem('id_aperturas_cierres', res.id);
+          localStorage.setItem('estado_caja', 'abierta');
+          localStorage.setItem('numero_caja', res.numero_caja); 
+          $('#modalInicio').modal('hide');
+          alert('Caja abierta correctamente');
+          $('#btnAbrirCaja').prop('disabled', true);
+          cargarCaja(); 
       } else {
-        if (res.error === 'Ya existe una caja abierta para este número.') {
-          alert('La caja ya está abierta');
-        } else {
-          $('#mensaje').html('<div class="alert alert-danger">' + res.error + '</div>');
-        }
+          if (res.error === 'Ya existe una caja abierta para este número.') {
+              alert('La caja ya está abierta');
+          } else {
+              alert(res.error);
+          }
       }
-    });
+  });
   });
 
- $('#btnCerrarCaja').on('click', function () {
-    const estadoCaja = localStorage.getItem('estado_caja');
-    const idSesion = localStorage.getItem('id_aperturas_cierres');
+  $('#btnCerrarCaja').on('click', function () {
+      const estadoCaja = localStorage.getItem('estado_caja');
+      const idSesion = localStorage.getItem('id_aperturas_cierres');
 
-    if (estadoCaja !== 'abierta' || !idSesion) {
-      $('#mensaje').html('<div class="alert alert-warning">No hay caja abierta para cerrar.</div>');
-      return;
-    }
-
-    // Decodificar JWT
-    function parseJwt(token) {
-      try {
-        const base64Url = token.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(
-          atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')
-        );
-        return JSON.parse(jsonPayload);
-      } catch (err) {
-        console.error('Token inválido:', err);
-        return null;
+      if (estadoCaja !== 'abierta' || !idSesion) {
+          alert('No hay caja abierta para cerrar.');
+          return;
       }
-    }
 
-    const token = sessionStorage.getItem('authToken');
-    if (!token) {
-      $('#mensaje').html('<div class="alert alert-danger">Sesión no válida. Inicia sesión nuevamente.</div>');
-      sessionStorage.clear();
-      window.location.href = '/login.html';
-      return;
-    }
-
-    const payload = parseJwt(token);
-    const id_usuario_cierre = payload?.id;
-
-    if (!id_usuario_cierre || isNaN(id_usuario_cierre)) {
-      $('#mensaje').html('<div class="alert alert-danger">Usuario inválido para cerrar caja.</div>');
-      return;
-    }
-
-    // Confirmación opcional
-    if (!confirm('¿Estás seguro de cerrar la caja actual?')) return;
-
-    // Enviar solicitud al backend
-    $.ajax({
-      url: '/api/caja/cerrar',
-      type: 'POST',
-      contentType: 'application/json',
-      data: JSON.stringify({
-        id_aperturas_cierres: parseInt(idSesion),
-        id_usuario_cierre: parseInt(id_usuario_cierre),
-        observaciones: 'Cierre manual desde interfaz' // puedes hacer esto dinámico si quieres
-      }),
-      success: function (data) {
-        if (data.success) {
-          // Limpiar estado de la caja
-          localStorage.removeItem('id_aperturas_cierres');
-          localStorage.removeItem('estado_caja');
-          localStorage.removeItem('numero_caja');
-
-          $('#mensaje').html('<div class="alert alert-success">Caja cerrada correctamente.</div>');
-          $('#btnAbrirCaja').prop('disabled', false);
-          cargarCaja(); // actualiza interfaz
-        } else {
-          $('#mensaje').html('<div class="alert alert-danger">' + (data.error || 'Error desconocido.') + '</div>');
-        }
-      },
-      error: function (xhr, status, error) {
-        $('#mensaje').html('<div class="alert alert-danger">Error en el servidor: ' + error + '</div>');
+      // Decodificar JWT
+      function parseJwt(token) {
+          try {
+              const base64Url = token.split('.')[1];
+              const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+              const jsonPayload = decodeURIComponent(
+                  atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')
+              );
+              return JSON.parse(jsonPayload);
+          } catch (err) {
+              console.error('Token inválido:', err);
+              return null;
+          }
       }
-    });
+
+      const token = sessionStorage.getItem('authToken');
+      if (!token) {
+          alert('Sesión no válida. Inicia sesión nuevamente.');
+          sessionStorage.clear();
+          window.location.href = '/login.html';
+          return;
+      }
+
+      const payload = parseJwt(token);
+      const id_usuario_cierre = payload?.id;
+
+      if (!id_usuario_cierre || isNaN(id_usuario_cierre)) {
+          alert('Usuario inválido para cerrar caja.');
+          return;
+      }
+
+      // Confirmación opcional
+      if (!confirm('¿Estás seguro de cerrar la caja actual?')) return;
+
+      // Enviar solicitud al backend
+      $.ajax({
+          url: '/api/caja/cerrar',
+          type: 'POST',
+          contentType: 'application/json',
+          data: JSON.stringify({
+              id_aperturas_cierres: parseInt(idSesion),
+              id_usuario_cierre: parseInt(id_usuario_cierre),
+              observaciones: 'Cierre manual desde interfaz'
+          }),
+          success: function (data) {
+              if (data.success) {
+                  // Limpiar estado de la caja
+                  localStorage.removeItem('id_aperturas_cierres');
+                  localStorage.removeItem('estado_caja');
+                  localStorage.removeItem('numero_caja');
+
+                  alert('Caja cerrada correctamente.');
+                  $('#btnAbrirCaja').prop('disabled', false);
+                  cargarCaja(); // actualiza interfaz
+              } else {
+                  alert(data.error || 'Error desconocido.');
+              }
+          },
+          error: function (xhr, status, error) {
+              alert('Error en el servidor: ' + error);
+          }
+      });
   });
   
  $('#btnAdmin').on('click', function () {
@@ -253,8 +253,8 @@ $(document).ready(function () {
     // Deshabilitar botón si la caja ya está abierta
     const estadoCaja = localStorage.getItem('estado_caja');
     if (estadoCaja === 'abierta') {
-      $('#btnAbrirCaja').prop('disabled', true);
-      $('#mensajeCaja').html('<div class="alert alert-info">La caja ya está abierta.</div>');
+        $('#btnAbrirCaja').prop('disabled', true);
+        alert('La caja ya está abierta.');
     }
   
   document.getElementById('btnVolver').addEventListener('click', () => {
