@@ -20,6 +20,13 @@ let botonActivo = null;
 
 let serviciosDisponibles = {}; 
 
+// Fallbacks si la API no responde o no trae el tipo
+const PRECIO_FALLBACK = { "BAÑO": 500, "DUCHA": 3500 };
+const getPrecio = (tipo) => {
+const api = Number(serviciosDisponibles?.[tipo]?.precio);
+  return Number.isFinite(api) && api > 0 ? api : (PRECIO_FALLBACK[tipo] ?? 0);
+};
+
 async function cargarServicios() {
   try {
     const res = await fetch('/api/servicios');
@@ -72,7 +79,7 @@ async function cargarServicios() {
         const fechaStr = fechaHoraAct.toISOString().split("T")[0];
         const tipoStr = btn.dataset.tipo;
         const numeroT = generarTokenNumerico();
-        const valor = serviciosDisponibles[tipoStr]?.precio || 0;
+        const valor = getPrecio(tipoStr);
 
         datosPendientes = {
           Codigo: numeroT,
@@ -85,6 +92,7 @@ async function cargarServicios() {
         };
 
         botonActivo = btn;
+        btn.disabled = true;
         btn.classList.add("disabled");
 
         document.getElementById("modalPago").style.display = "flex";
@@ -115,14 +123,15 @@ function cerrarModalPago() {
 async function continuarConPago(metodoPago) {
   if (!datosPendientes) return;
 
-  const { Codigo, hora, fecha, tipo, valor } = datosPendientes;
+  const { Codigo, hora, fecha, tipo } = datosPendientes;
   const estado_caja = localStorage.getItem('estado_caja');
-  const datos = { Codigo, hora, fecha, tipo, valor }
-
+  const precioFinal = getPrecio(tipo);
+  const datos = { Codigo, hora, fecha, tipo, valor: precioFinal };
 
   // Validación y pago con tarjeta
   if (metodoPago === "TARJETA") {
-    const monto = tipo === "BAÑO" ? 500 : tipo === "DUCHA" ? 4000 : 0;
+    // Usa el precio traído desde /api/servicios
+    const monto = Math.round(Number(precioFinal) || 0);
 
     try {
       showSpinner();
@@ -196,7 +205,7 @@ async function continuarConPago(metodoPago) {
       fecha,
       hora,
       tipo,
-      valor,
+      valor: precioFinal,
       metodoPago,
       estado_caja,
       id_usuario
@@ -212,15 +221,8 @@ async function continuarConPago(metodoPago) {
     ? qrCanvas.toDataURL("image/png").replace(/^data:image\/png;base64,/, "")
     : "";
 
-  const printPayload = {
-    Codigo,
-    hora,
-    fecha,
-    tipo,
-    valor,
-    qrBase64
-  };
-
+  const printPayload = { Codigo, hora, fecha, tipo, valor: precioFinal, qrBase64 };
+  
   const estado = document.createElement("p");
   contenedorQR.appendChild(estado);
 
@@ -334,8 +336,8 @@ function printQR() {
   }
   
   const precio =
-    restroom[tipoSeleccionado] !== undefined
-      ? `$${restroom[tipoSeleccionado]}`
+    (serviciosDisponibles?.[tipoSeleccionado]?.precio ?? datosPendientes?.valor ?? null) != null
+      ? `$${Number((serviciosDisponibles?.[tipoSeleccionado]?.precio ?? datosPendientes?.valor)).toLocaleString("es-CL")}`
       : "No definido";
 
   ventanaImpr.document.write(`
@@ -425,11 +427,6 @@ async function addUserAccessLevel(token) {
   } catch (error) {
     console.error("Error al asignar niveles de acceso:", error);
   }
-}
-
-function cerrarModalPago() {
-  document.getElementById("modalPago").style.display = "none";
-  datosPendientes = null;
 }
 
 // Eventos para botones de pago
