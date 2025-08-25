@@ -409,7 +409,7 @@ async function addUser(token) {
 
 // Función para asignar niveles de acceso al usuario
 async function addUserAccessLevel(token) {
-  const url = urlBase + "/TerminalCalama/PHP/Restroom/addLevelUser.php";
+  const url = urlBase + "/TerminalCalama/PHP/Restroom/addLevelUser2.php";
   const accessData = { pin: token };
 
   try {
@@ -423,7 +423,7 @@ async function addUserAccessLevel(token) {
     });
 
     let result = await response.text();
-    console.log("Respuesta de addLevelUser:", result);
+    console.log("Respuesta de addLevelUser2:", result);
   } catch (error) {
     console.error("Error al asignar niveles de acceso:", error);
   }
