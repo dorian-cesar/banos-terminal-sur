@@ -3,6 +3,15 @@ const router = express.Router();
 const cajaController = require('../src/controllers/cajaController');
 const servicioController = require('../src/controllers/servicioController');
 
+router.get('/api/numero-caja', (req, res) => {
+    try {
+        const numero_caja = parseInt(process.env.NUMERO_CAJA) || 1;
+        res.json({ numero_caja: numero_caja });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener número de caja' });
+    }
+});
+
 // Rutas para abrir caja
 router.post('/api/caja/abrir', cajaController.abrirCaja);
 
