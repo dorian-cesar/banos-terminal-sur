@@ -98,25 +98,28 @@ async function imprimirTicket({ Codigo, hora, fecha, tipo, valor }) {
 
     // --- Secciones ---
     const encabezado = [
-      "INMOBILIARIA E INVERSIONES P Y R S.A.",
-      "GIRO: OBRAS MENORES EN CONSTRUCCIÓN",
+      "INMOBILIARIA E INVERSIONES", 
+      "P Y R S.A.",
+      "GIRO: OBRAS MENORES",
+      "EN CONSTRUCCIÓN",
       "RUT: 96.971.370-5",
-      "SAN BORJA N1251 - ESTACION CENTRAL",
+      "SAN BORJA N1251", 
+      "ESTACION CENTRAL",
       "FONO 02-5603700",
       "Santiago - Chile",
-      "-------------------------",
+      "---------------------------------------------",
     ];
 
     const detalle = [
-      "VOUCHER DE TRANSACCIÓN",
-      "-------------------------",
+      "BOLETO DE TRANSACCIÓN",
+      "VENTA - COPIA CLIENTE",
+      "---------------------------------------------",
       `Código Autorización : ${Codigo}`,
       `Fecha : ${fechaFormateada}`,
       `Hora  : ${hora}`,
       `Tipo  : ${tipo}`,
       valor ? `Monto : $${valor}` : null,
-      "-------------------------",
-      "VENTA - COPIA CLIENTE",
+      "---------------------------------------------",
     ].filter(Boolean);
 
     const footer = ["VÁLIDO COMO BOLETA", "Gracias por su compra"];
@@ -129,10 +132,6 @@ async function imprimirTicket({ Codigo, hora, fecha, tipo, valor }) {
     const spaceBeforeQR = 10;
     const spaceAfterQR = 20;
 
-    const totalTextLines = encabezado.length + detalle.length + footer.length;
-    const contenidoAlto = totalTextLines * lineHeight;
-
-    // alto total = márgenes + texto + (espacios y QR)
     let altura =
       topMargin +
       encabezado.length * lineHeight +
@@ -142,11 +141,10 @@ async function imprimirTicket({ Codigo, hora, fecha, tipo, valor }) {
       (detalle.length + footer.length) * lineHeight +
       bottomMargin;
 
-    // Asegura un mínimo razonable por si algún campo viene muy corto
-    const alturaMin = 420; // ~A6, se ve tipo voucher
+    const alturaMin = 420;
     altura = Math.max(altura, alturaMin);
 
-    // --- Crear página con el alto calculado ---
+    // --- Crear página ---
     const page = pdfDoc.addPage([210, altura]);
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const fontSize = 11;
@@ -154,9 +152,11 @@ async function imprimirTicket({ Codigo, hora, fecha, tipo, valor }) {
     // Posición inicial
     let y = altura - topMargin;
 
-    // --- Encabezado ---
+    // --- Encabezado centrado ---
     encabezado.forEach((line) => {
-      page.drawText(line, { x: 30, y, size: fontSize, font });
+      const textWidth = font.widthOfTextAtSize(line, fontSize);
+      const centeredX = (210 - textWidth) / 2;
+      page.drawText(line, { x: centeredX, y, size: fontSize, font });
       y -= lineHeight;
     });
 
@@ -178,9 +178,11 @@ async function imprimirTicket({ Codigo, hora, fecha, tipo, valor }) {
 
     y = qrY - spaceAfterQR;
 
-    // --- Detalle ---
+    // --- Detalle centrado ---
     detalle.forEach((line) => {
-      page.drawText(line, { x: 20, y, size: fontSize, font });
+      const textWidth = font.widthOfTextAtSize(line, fontSize);
+      const centeredX = (210 - textWidth) / 2;
+      page.drawText(line, { x: centeredX, y, size: fontSize, font });
       y -= lineHeight;
     });
 
