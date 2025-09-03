@@ -452,70 +452,77 @@ exports.listarCajasDelDia = async (req, res) => {
   }
 };
 
-exports.realizarArqueoDelDia = async (req, res) => {
-  const { nombre } = req.body;
-
-  if (!nombre) {
-    return res.status(400).json({ success: false, error: 'Nombre de usuario requerido.' });
-  }
-
+exports.registrarRetiro = async (req, res) => {
   try {
-    // Cajas del día actual que NO han sido arqueadas
-    const [registros] = await pool.execute(
-      `SELECT 
-         ac.id,
-         ac.fecha_apertura,
-         ac.hora_apertura,
-         ac.monto_inicial,
-         ac.total_efectivo,
-         ac.total_tarjeta,
-         ac.observaciones,
-         u.username,
-         c.nombre AS nombre_caja
-       FROM aperturas_cierres ac
-       INNER JOIN users u ON u.id = ac.id_usuario_apertura
-       INNER JOIN cajas c ON c.numero_caja = ac.numero_caja
-       WHERE ac.fecha_apertura = CURDATE()
-         AND ac.fue_arqueada = FALSE`
-    );
+    const { monto, id_usuario } = req.body;
+    const numero_caja = parseInt(process.env.NUMERO_CAJA);
 
-    if (!registros.length) {
-      return res.json({
-        success: true,
-        mensaje: 'No hay cajas pendientes de arqueo hoy.',
-        arqueadas: 0,
-        detalles: []
-      });
+    // Validaciones
+    if (!monto || isNaN(monto) || parseFloat(monto) <= 0) {
+      return res.status(400).json({ success: false, message: 'Monto inválido' });
+    }
+    
+    if (!id_usuario || isNaN(id_usuario)) {
+      return res.status(400).json({ success: false, message: 'ID de usuario inválido' });
     }
 
-    const ahora = new Date();
-    const marca = `Arqueado por ${nombre} el ${ahora.toLocaleDateString()} a las ${ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-
-    const ids = registros.map(r => r.id);
-    const placeholders = ids.map(() => '?').join(',');
-
-    // Actualizar campo observaciones + fue_arqueada = true
-    await pool.execute(
-      `UPDATE aperturas_cierres 
-       SET observaciones = ?, fue_arqueada = TRUE 
-       WHERE id IN (${placeholders})`,
-      [marca, ...ids]
+    // Obtener ID de la sesión de caja abierta
+    const [apertura] = await pool.execute(
+      'SELECT id FROM aperturas_cierres WHERE numero_caja = ? AND estado = "abierta" ORDER BY id DESC LIMIT 1',
+      [numero_caja]
     );
 
-    const detallesActualizados = registros.map(r => ({ ...r, observaciones: marca }));
+    if (apertura.length === 0) {
+      return res.status(400).json({ success: false, message: 'No hay caja abierta' });
+    }
 
-    res.json({
-      success: true,
-      mensaje: `Arqueadas ${ids.length} caja(s) del día.`,
-      arqueadas: ids.length,
-      detalles: detallesActualizados
+    const id_aperturas_cierres = apertura[0].id;
+
+    // Usar ID fijo para retiros (debe existir en la tabla servicios)
+    const id_servicio = 999; // ID del servicio de retiros
+
+    // Generar código único para el retiro
+    const codigo = 'RET-' + Date.now();
+    const fecha = new Date().toISOString().split('T')[0];
+    const hora = new Date().toTimeString().split(' ')[0];
+
+    // Insertar movimiento de retiro
+    const [result] = await pool.execute(
+      `INSERT INTO movimientos 
+       (codigo, fecha, hora, id_servicio, monto, medio_pago, numero_caja, id_usuario, id_aperturas_cierres)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        codigo,
+        fecha,
+        hora,
+        id_servicio, // ID válido que existe en servicios
+        -Math.abs(monto), // Valor NEGATIVO
+        'Retiro de efectivo',
+        numero_caja,
+        id_usuario,
+        id_aperturas_cierres
+      ]
+    );
+
+    res.json({ 
+      success: true, 
+      message: 'Retiro registrado exitosamente',
+      insertId: result.insertId,
+      retiro: {
+        id: result.insertId,
+        codigo,
+        fecha,
+        hora,
+        monto: -Math.abs(monto),
+        medio_pago: 'Retiro de efectivo',
+        id_servicio: id_servicio
+      }
     });
-  } catch (err) {
-    console.error('Error al realizar arqueo:', err);
-    res.status(500).json({ success: false, error: 'Error interno al realizar el arqueo.' });
+
+  } catch (error) {
+    console.error('Error al registrar retiro:', error);
+    res.status(500).json({ success: false, message: 'Error interno del servidor' });
   }
 };
-
-
 
 

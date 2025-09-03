@@ -12,6 +12,8 @@ router.get('/api/numero-caja', (req, res) => {
     }
 });
 
+router.post('/api/caja/retiros', cajaController.registrarRetiro);
+
 // Rutas para abrir caja
 router.post('/api/caja/abrir', cajaController.abrirCaja);
 
@@ -34,9 +36,6 @@ router.get('/api/caja/movimientos/por-caja', cajaController.listarMovimientosPor
 router.post('/api/caja/cerrar', cajaController.cerrarCaja);
 
 router.get('/api/caja/cajas-dia', cajaController.listarCajasDelDia);
-
-router.post('/api/caja/arqueo', cajaController.realizarArqueoDelDia);
-
 
 router.get('/api/servicios', servicioController.obtenerServiciosActivos);
 
