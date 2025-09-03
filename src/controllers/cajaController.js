@@ -507,6 +507,14 @@ exports.registrarRetiro = async (req, res) => {
 
     const nombre_usuario = usuario[0].username;
 
+    // Obtener el nombre de la caja desde la tabla cajas
+    const [cajaInfo] = await pool.execute(
+      'SELECT nombre FROM cajas WHERE numero_caja = ?',
+      [numero_caja]
+    );
+
+    const nombre_caja = cajaInfo.length > 0 ? cajaInfo[0].nombre : `Caja ${numero_caja}`;
+
     // Usar ID fijo para retiros (debe existir en la tabla servicios)
     const id_servicio = 999; // ID del servicio de retiros
 
@@ -541,7 +549,7 @@ exports.registrarRetiro = async (req, res) => {
         hora,
         monto: Math.abs(monto), // Mostrar valor positivo en el ticket
         nombre_usuario,
-        numero_caja,
+        nombre_caja,  // Pasar el nombre de la caja en lugar del número
         motivo: motivo || 'Retiro de efectivo'
       });
     } catch (printError) {

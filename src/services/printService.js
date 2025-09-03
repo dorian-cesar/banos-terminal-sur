@@ -159,6 +159,7 @@ async function imprimirCierreCaja({
       "CIERRE DE CAJA",
       "-------------------------",
       `Caja         : N° ${numero_caja}`,
+      `Cajero       : ${nombre_usuario}`,
       `Cerrado por  : ${nombre_usuario}`,
       `Fecha        : ${fecha_cierre}`,
       `Hora         : ${hora_cierre}`,
@@ -208,7 +209,8 @@ async function imprimirRetiro({
   hora,
   monto,
   nombre_usuario,
-  numero_caja,
+  nombre_caja,  // Cambiar de numero_caja a nombre_caja
+  motivo
 }) {
   try {
     if (!codigo || !monto) throw new Error("Campos requeridos faltantes");
@@ -230,8 +232,9 @@ async function imprimirRetiro({
       `Codigo: ${codigo}`,
       `Fecha:  ${fechaFormateada}`,
       `Hora:   ${hora}`,
-      `Caja:   N° ${numero_caja}`,
-      `Usuario: ${nombre_usuario}`,
+      `Caja:   ${nombre_caja}`,  // Usar nombre_caja en lugar de numero_caja
+      `Cajero: ${nombre_usuario}`,
+      `Recaudado por: ${nombre_usuario}`,
       "---------------------------------------------------",
       "MONTO RETIRADO:",
       `$${parseFloat(monto).toLocaleString('es-CL')}`,
@@ -276,10 +279,10 @@ async function imprimirRetiro({
       const isSeparator = line.includes("---");
       
       const currentFont = isTitle || isMonto ? boldFont : font;
-      const currentSize = isMonto ? 13 : isTitle ? 12 : 10;
+      const currentSize = isMonto ? 13 : isTitle ? 13 : 12;
       
       if (isSeparator) {
-        page.drawText(line, { x: 15, y, size: 10, font });
+        page.drawText(line, { x: 15, y, size: 12, font });
       } else {
         const textWidth = currentFont.widthOfTextAtSize(line, currentSize);
         const centeredX = (210 - textWidth) / 2;
@@ -295,7 +298,7 @@ async function imprimirRetiro({
     footer.forEach((line) => {
       const isFirma = line === "FIRMA AUTORIZADA:";
       const currentFont = isFirma ? boldFont : font;
-      const currentSize = isFirma ? 11 : 9;
+      const currentSize = isFirma ? 13 : 11;
       
       const textWidth = currentFont.widthOfTextAtSize(line, currentSize);
       const centeredX = (210 - textWidth) / 2;
