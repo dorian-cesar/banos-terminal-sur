@@ -8,80 +8,8 @@ const { print } = require("pdf-to-printer");
 module.exports = {
   imprimirTicket,
   imprimirCierreCaja,
+  imprimirRetiro  
 };
-
-// async function imprimirTicket({ Codigo, hora, fecha, tipo, valor }) {
-//   try {
-//     if (!Codigo || !tipo) throw new Error('Campos requeridos faltantes');
-
-//     const pdfDoc = await PDFDocument.create();
-//     const page = pdfDoc.addPage([210, 500]); // A6
-
-//     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-//     const fontSize = 12;
-//     const x = 20;
-
-//     const fechaObj = new Date(fecha);
-//     const dia = String(fechaObj.getDate()).padStart(2, '0');
-//     const mes = String(fechaObj.getMonth() + 1).padStart(2, '0');
-//     const anio = String(fechaObj.getFullYear());
-//     const fechaFormateada = `${dia}-${mes}-${anio}`;
-
-//     // ========================
-//     // 1. Dibujar código QR primero
-//     // ========================
-//     const qrWidth = 150;
-//     const qrHeight = 150;
-//     const qrX = (210 - qrWidth) / 2;
-//     const qrY = 320;
-
-//     const qrDataURL = await QRCode.toDataURL(Codigo);
-//     const qrImageBytes = Buffer.from(qrDataURL.split(',')[1], 'base64');
-//     const qrImage = await pdfDoc.embedPng(qrImageBytes);
-
-//     page.drawImage(qrImage, {
-//       x: qrX,
-//       y: qrY,
-//       width: qrWidth,
-//       height: qrHeight
-//     });
-
-//     // ========================
-//     // 2. Dibujar texto debajo del QR
-//     // ========================
-//     let y = qrY - 30;
-//     const lines = [
-//       'Ticket de Acceso',
-//       '-------------------------',
-//       `Código: ${Codigo}`,
-//       `Fecha : ${fechaFormateada}`,
-//       `Hora  : ${hora}`,
-//       `Tipo  : ${tipo}`
-//     ];
-
-//     // Agregar valor solo si está definido y no es null
-//     if (valor !== undefined && valor !== null) {
-//       lines.push(`Valor : ${valor}`);
-//     }
-
-//     lines.push('.');
-
-//     lines.forEach(line => {
-//       page.drawText(line, { x, y, size: fontSize, font });
-//       y -= 20;
-//     });
-
-//     const pdfBytes = await pdfDoc.save();
-//     const filePath = path.join(os.tmpdir(), `ticket-${Date.now()}.pdf`);
-//     fs.writeFileSync(filePath, pdfBytes);
-
-//     await print(filePath, { printer: 'POS58' });
-//     fs.unlink(filePath, () => {});
-
-//   } catch (error) {
-//     console.error('🛑 Error en imprimirTicket:', error.message);
-//   }
-// }
 
 async function imprimirTicket({ Codigo, hora, fecha, tipo, valor }) {
   try {
@@ -263,5 +191,121 @@ async function imprimirCierreCaja({
     console.log("✅ Ticket de cierre impreso correctamente.");
   } catch (error) {
     console.error("🛑 Error al imprimir ticket de cierre:", error.message);
+  }
+}
+
+async function imprimirRetiro({
+  codigo,
+  fecha,
+  hora,
+  monto,
+  nombre_usuario,
+  numero_caja,
+}) {
+  try {
+    if (!codigo || !monto) throw new Error("Campos requeridos faltantes");
+
+    const pdfDoc = await PDFDocument.create();
+
+    // --- Datos base ---
+    const fechaObj = new Date(fecha);
+    const dia = String(fechaObj.getDate()).padStart(2, "0");
+    const mes = String(fechaObj.getMonth() + 1).padStart(2, "0");
+    const anio = String(fechaObj.getFullYear());
+    const fechaFormateada = `${dia}-${mes}-${anio}`;
+
+    // --- Secciones simples ---
+    const detalle = [
+      "COMPROBANTE DE RETIRO",
+      "DE EFECTIVO",
+      "---------------------------------------------------",
+      `Codigo: ${codigo}`,
+      `Fecha:  ${fechaFormateada}`,
+      `Hora:   ${hora}`,
+      `Caja:   N° ${numero_caja}`,
+      `Usuario: ${nombre_usuario}`,
+      "---------------------------------------------------",
+      "MONTO RETIRADO:",
+      `$${parseFloat(monto).toLocaleString('es-CL')}`,
+      "---------------------------------------------------",
+    ];
+
+    const footer = [
+      " ",
+      "FIRMA AUTORIZADA:",
+      " ",
+      " ",
+      "_________________________",
+      " ",
+      " ",
+      "."
+    ];
+
+    // --- Cálculo de altura ---
+    const lineHeight = 15;
+    const topMargin = 30;
+    const bottomMargin = 30;
+    const espacioFirma = 40;
+
+    let altura = topMargin + 
+                (detalle.length * lineHeight) + 
+                espacioFirma + 
+                (footer.length * lineHeight) + 
+                bottomMargin;
+
+    // --- Crear página ---
+    const page = pdfDoc.addPage([210, altura]);
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+    // Posición inicial
+    let y = altura - topMargin;
+
+    // --- Detalles ---
+    detalle.forEach((line) => {
+      const isTitle = line === "COMPROBANTE DE RETIRO" || line === "DE EFECTIVO";
+      const isMonto = line.includes("MONTO RETIRADO") || line.includes("$");
+      const isSeparator = line.includes("---");
+      
+      const currentFont = isTitle || isMonto ? boldFont : font;
+      const currentSize = isMonto ? 13 : isTitle ? 12 : 10;
+      
+      if (isSeparator) {
+        page.drawText(line, { x: 15, y, size: 10, font });
+      } else {
+        const textWidth = currentFont.widthOfTextAtSize(line, currentSize);
+        const centeredX = (210 - textWidth) / 2;
+        page.drawText(line, { x: centeredX, y, size: currentSize, font: currentFont });
+      }
+      y -= lineHeight;
+    });
+
+    // Espacio para firma
+    y -= 20;
+
+    // --- Footer ---
+    footer.forEach((line) => {
+      const isFirma = line === "FIRMA AUTORIZADA:";
+      const currentFont = isFirma ? boldFont : font;
+      const currentSize = isFirma ? 11 : 9;
+      
+      const textWidth = currentFont.widthOfTextAtSize(line, currentSize);
+      const centeredX = (210 - textWidth) / 2;
+      page.drawText(line, { x: centeredX, y, size: currentSize, font: currentFont });
+      y -= lineHeight;
+    });
+
+    // --- Guardar e imprimir ---
+    const pdfBytes = await pdfDoc.save();
+    const filePath = path.join(os.tmpdir(), `retiro-${Date.now()}.pdf`);
+    fs.writeFileSync(filePath, pdfBytes);
+
+    await print(filePath, { printer: "POS58" });
+    fs.unlink(filePath, () => {});
+    
+    console.log("✅ Comprobante de retiro impreso correctamente.");
+  } catch (error) {
+    console.error("🛑 Error en imprimirRetiro:", error.message);
+    throw error;
   }
 }

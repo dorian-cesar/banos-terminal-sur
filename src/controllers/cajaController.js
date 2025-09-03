@@ -1,6 +1,6 @@
 const pool = require('../../db_config/db.js');
 require('dotenv').config(); 
-const { imprimirCierreCaja } = require('../services/printService');
+const { imprimirCierreCaja, imprimirRetiro } = require('../services/printService');
 
 
 exports.abrirCaja = async (req, res) => {
@@ -454,7 +454,7 @@ exports.listarCajasDelDia = async (req, res) => {
 
 exports.registrarRetiro = async (req, res) => {
   try {
-    const { monto, id_usuario } = req.body;
+    const { monto, id_usuario, motivo } = req.body;
     const numero_caja = parseInt(process.env.NUMERO_CAJA);
 
     // Validaciones
@@ -477,6 +477,18 @@ exports.registrarRetiro = async (req, res) => {
     }
 
     const id_aperturas_cierres = apertura[0].id;
+
+    // Obtener información del usuario que realiza el retiro
+    const [usuario] = await pool.execute(
+      'SELECT username FROM users WHERE id = ?',
+      [id_usuario]
+    );
+
+    if (usuario.length === 0) {
+      return res.status(400).json({ success: false, message: 'Usuario no encontrado' });
+    }
+
+    const nombre_usuario = usuario[0].username;
 
     // Usar ID fijo para retiros (debe existir en la tabla servicios)
     const id_servicio = 999; // ID del servicio de retiros
@@ -503,6 +515,22 @@ exports.registrarRetiro = async (req, res) => {
         id_aperturas_cierres
       ]
     );
+
+    // Imprimir comprobante de retiro
+    try {
+      await imprimirRetiro({
+        codigo,
+        fecha,
+        hora,
+        monto: Math.abs(monto), // Mostrar valor positivo en el ticket
+        nombre_usuario,
+        numero_caja,
+        motivo: motivo || 'Retiro de efectivo'
+      });
+    } catch (printError) {
+      console.error('Error al imprimir comprobante:', printError);
+      // No fallar la operación si hay error de impresión, solo registrar
+    }
 
     res.json({ 
       success: true, 
