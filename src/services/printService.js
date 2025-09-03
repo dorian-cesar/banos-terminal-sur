@@ -140,24 +140,25 @@ async function imprimirCierreCaja({
   fecha_cierre,
   hora_cierre,
   numero_caja,
-  nombre_usuario,
+  nombre_usuario,  // Usuario que cierra (admin/supervisor)
+  nombre_cajero    // ← Agregar nombre del cajero
 }) {
   try {
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([210, 750]); // Aumentar altura para incluir retiros
+    const page = pdfDoc.addPage([210, 780]); // Aumentar altura para incluir ambas líneas
 
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold); // Pre-cargar la fuente en negrita
+    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
     const fontSize = 12;
     const x = 20;
-    let y = 720; // Ajustar posición inicial
+    let y = 750; // Ajustar posición inicial
 
     const lines = [
       "CIERRE DE CAJA",
       "-------------------------",
       `Caja         : N° ${numero_caja}`,
-      `Cajero       : ${nombre_usuario}`,
-      `Cerrado por  : ${nombre_usuario}`,
+      `Cajero       : ${nombre_cajero || 'Cajero'}`,  // ← Mostrar nombre del cajero
+      `Cerrado por  : ${nombre_usuario}`,  // Usuario que cierra (admin/supervisor)
       `Fecha        : ${fecha_cierre}`,
       `Hora         : ${hora_cierre}`,
       "",

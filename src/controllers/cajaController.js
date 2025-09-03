@@ -315,7 +315,7 @@ exports.registrarMovimiento = async (req, res) => {
 };
 
 exports.cerrarCaja = async (req, res) => {
-  const { id_aperturas_cierres, id_usuario_cierre, observaciones } = req.body;
+  const { id_aperturas_cierres, id_usuario_cierre, observaciones, nombre_cajero } = req.body;
 
   if (!id_aperturas_cierres || !id_usuario_cierre) {
     return res.status(400).json({
@@ -367,13 +367,13 @@ exports.cerrarCaja = async (req, res) => {
     const monto_inicial = aperturaInfo.monto_inicial || 0;
     const numero_caja = aperturaInfo.numero_caja;
 
-    // Obtener nombre del usuario que cierra
+    // Obtener nombre del usuario que cierra (admin/supervisor)
     const [[usuarioInfo]] = await pool.execute(
       `SELECT username FROM users WHERE id = ?`,
       [id_usuario_cierre]
     );
 
-    const nombre_usuario = usuarioInfo.username;
+    const nombre_usuario_cierre = usuarioInfo.username;
 
     // Calcular balance final (monto inicial + efectivo - retiros)
     const balance_final = Number(monto_inicial) + Number(total_efectivo) - Number(total_retiros);
@@ -414,7 +414,8 @@ exports.cerrarCaja = async (req, res) => {
       fecha_cierre,
       hora_cierre,
       numero_caja,
-      nombre_usuario
+      nombre_usuario: nombre_usuario_cierre,  // Usuario que cierra (admin/supervisor)
+      nombre_cajero: nombre_cajero || 'Cajero'  // Nombre del cajero que trabajó en la caja
     });
 
     res.json({
@@ -428,6 +429,7 @@ exports.cerrarCaja = async (req, res) => {
         balance_final,
         fecha_cierre,
         hora_cierre,
+        nombre_cajero: nombre_cajero || 'Cajero'
       },
     });
   } catch (err) {
