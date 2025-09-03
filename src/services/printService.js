@@ -137,7 +137,8 @@ async function imprimirTicket({ Codigo, hora, fecha, tipo, valor }) {
 async function imprimirCierreCaja({
   total_efectivo,
   total_tarjeta,
-  total_general,
+  total_retiros,
+  balance_final,
   monto_inicial,
   fecha_cierre,
   hora_cierre,
@@ -146,15 +147,13 @@ async function imprimirCierreCaja({
 }) {
   try {
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([210, 700]); // A6 con margen inferior aumentado
+    const page = pdfDoc.addPage([210, 750]); // Aumentar altura para incluir retiros
 
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold); // Pre-cargar la fuente en negrita
     const fontSize = 12;
     const x = 20;
-    let y = 660; // más espacio arriba
-
-    // Cálculo del saldo final
-    const saldo_final = Number(monto_inicial) + Number(total_general);
+    let y = 720; // Ajustar posición inicial
 
     const lines = [
       "CIERRE DE CAJA",
@@ -164,13 +163,15 @@ async function imprimirCierreCaja({
       `Fecha        : ${fecha_cierre}`,
       `Hora         : ${hora_cierre}`,
       "",
-      `Monto Inicial     : $${parseFloat(monto_inicial).toLocaleString()}`,
-      `Total Efectivo    : $${parseFloat(total_efectivo).toLocaleString()}`,
-      `Total Tarjeta     : $${parseFloat(total_tarjeta).toLocaleString()}`,
+      `Monto Inicial     : $${parseFloat(monto_inicial).toLocaleString('es-CL')}`,
+      `Total Efectivo    : $${parseFloat(total_efectivo).toLocaleString('es-CL')}`,
+      `Total Tarjeta     : $${parseFloat(total_tarjeta).toLocaleString('es-CL')}`,
+      `Total Retirado    : $${parseFloat(total_retiros).toLocaleString('es-CL')}`,
       "-------------------------",
-      `TOTAL GENERAL     : $${parseFloat(total_general).toLocaleString()}`,
+      `TOTAL VENTAS      : $${parseFloat(Number(total_efectivo) + Number(total_tarjeta)).toLocaleString('es-CL')}`,
       "-------------------------",
-      `SALDO FINAL       : $${parseFloat(saldo_final).toLocaleString()}`,
+      `BALANCE FINAL     : $${parseFloat(balance_final).toLocaleString('es-CL')}`,
+      "-------------------------",
       "",
       ".",
       "",
@@ -178,7 +179,14 @@ async function imprimirCierreCaja({
     ];
 
     lines.forEach((line) => {
-      page.drawText(line, { x, y, size: fontSize, font });
+      // Destacar títulos y totales importantes
+      const isTitle = line.includes("CIERRE DE CAJA");
+      const isTotal = line.includes("TOTAL VENTAS") || line.includes("BALANCE FINAL");
+      
+      const currentFont = isTitle || isTotal ? boldFont : font;
+      const currentSize = isTitle ? fontSize + 1 : isTotal ? fontSize + 1 : fontSize;
+      
+      page.drawText(line, { x, y, size: currentSize, font: currentFont });
       y -= 20;
     });
 

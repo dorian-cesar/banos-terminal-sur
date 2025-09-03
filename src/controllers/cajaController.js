@@ -339,11 +339,12 @@ exports.cerrarCaja = async (req, res) => {
       return res.status(400).json({ success: false, error: 'La sesión ya está cerrada.' });
     }
 
-    // Obtener totales desde la tabla movimientos
+    // Obtener totales desde la tabla movimientos CONSIDERANDO RETIROS
     const [[totales]] = await pool.execute(
       `SELECT 
-         SUM(CASE WHEN medio_pago = 'EFECTIVO' THEN monto ELSE 0 END) AS total_efectivo,
-         SUM(CASE WHEN medio_pago = 'TARJETA' THEN monto ELSE 0 END) AS total_tarjeta
+         SUM(CASE WHEN medio_pago = 'EFECTIVO' AND id_servicio != 999 THEN monto ELSE 0 END) AS total_efectivo,
+         SUM(CASE WHEN medio_pago = 'TARJETA' THEN monto ELSE 0 END) AS total_tarjeta,
+         SUM(CASE WHEN id_servicio = 999 THEN monto ELSE 0 END) AS total_retiros
        FROM movimientos
        WHERE id_aperturas_cierres = ?`,
       [id_aperturas_cierres]
@@ -351,12 +352,33 @@ exports.cerrarCaja = async (req, res) => {
 
     const total_efectivo = totales.total_efectivo || 0;
     const total_tarjeta = totales.total_tarjeta || 0;
+    const total_retiros = Math.abs(totales.total_retiros) || 0; // Convertir a positivo
 
     const now = new Date();
     const fecha_cierre = now.toISOString().split('T')[0];
     const hora_cierre = now.toTimeString().split(':').slice(0, 2).join(':');
 
-    // Actualizar la sesión
+    // Obtener monto inicial
+    const [[aperturaInfo]] = await pool.execute(
+      `SELECT monto_inicial, numero_caja FROM aperturas_cierres WHERE id = ?`,
+      [id_aperturas_cierres]
+    );
+
+    const monto_inicial = aperturaInfo.monto_inicial || 0;
+    const numero_caja = aperturaInfo.numero_caja;
+
+    // Obtener nombre del usuario que cierra
+    const [[usuarioInfo]] = await pool.execute(
+      `SELECT username FROM users WHERE id = ?`,
+      [id_usuario_cierre]
+    );
+
+    const nombre_usuario = usuarioInfo.username;
+
+    // Calcular balance final (monto inicial + efectivo - retiros)
+    const balance_final = Number(monto_inicial) + Number(total_efectivo) - Number(total_retiros);
+
+    // Actualizar la sesión con los nuevos campos
     await pool.execute(
       `UPDATE aperturas_cierres
        SET estado = 'cerrada',
@@ -365,6 +387,8 @@ exports.cerrarCaja = async (req, res) => {
            id_usuario_cierre = ?,
            total_efectivo = ?,
            total_tarjeta = ?,
+           total_retiros = ?,
+           balance_final = ?,
            observaciones = ?
        WHERE id = ?`,
       [
@@ -373,42 +397,35 @@ exports.cerrarCaja = async (req, res) => {
         id_usuario_cierre,
         total_efectivo,
         total_tarjeta,
+        total_retiros,
+        balance_final,
         observaciones || null,
         id_aperturas_cierres,
       ]
     );
 
-    // Obtener datos adicionales para imprimir ticket
-    const [[info]] = await pool.execute(`
-      SELECT 
-        ac.numero_caja,
-        ac.monto_inicial,
-        u.username AS nombre_usuario
-      FROM aperturas_cierres ac
-      INNER JOIN users u ON u.id = ac.id_usuario_cierre
-      WHERE ac.id = ?
-    `, [id_aperturas_cierres]);
-
-    // Imprimir ticket de cierre
+    // Imprimir ticket de cierre con la información completa
     await imprimirCierreCaja({
-      monto_inicial: info.monto_inicial,
+      monto_inicial,
       total_efectivo,
       total_tarjeta,
-      total_general: Number(total_efectivo) + Number(total_tarjeta),
+      total_retiros,
+      balance_final,
       fecha_cierre,
       hora_cierre,
-      numero_caja: info.numero_caja,
-      nombre_usuario: info.nombre_usuario
+      numero_caja,
+      nombre_usuario
     });
 
     res.json({
       success: true,
       mensaje: 'Caja cerrada correctamente.',
       data: {
-        monto_inicial: info.monto_inicial,
+        monto_inicial,
         total_efectivo,
         total_tarjeta,
-        total_general: Number(total_efectivo) + Number(total_tarjeta),
+        total_retiros,
+        balance_final,
         fecha_cierre,
         hora_cierre,
       },
