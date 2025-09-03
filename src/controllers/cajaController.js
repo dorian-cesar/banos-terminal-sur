@@ -471,7 +471,7 @@ exports.listarCajasDelDia = async (req, res) => {
 
 exports.registrarRetiro = async (req, res) => {
   try {
-    const { monto, id_usuario, motivo } = req.body;
+    const { monto, id_usuario, motivo, nombre_cajero } = req.body; // Agregar nombre_cajero
     const numero_caja = parseInt(process.env.NUMERO_CAJA);
 
     // Validaciones
@@ -495,7 +495,7 @@ exports.registrarRetiro = async (req, res) => {
 
     const id_aperturas_cierres = apertura[0].id;
 
-    // Obtener información del usuario que realiza el retiro
+    // Obtener información del usuario que AUTORIZA el retiro (admin/recaudador)
     const [usuario] = await pool.execute(
       'SELECT username FROM users WHERE id = ?',
       [id_usuario]
@@ -505,7 +505,7 @@ exports.registrarRetiro = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Usuario no encontrado' });
     }
 
-    const nombre_usuario = usuario[0].username;
+    const nombre_autorizador = usuario[0].username;
 
     // Obtener el nombre de la caja desde la tabla cajas
     const [cajaInfo] = await pool.execute(
@@ -548,9 +548,10 @@ exports.registrarRetiro = async (req, res) => {
         fecha,
         hora,
         monto: Math.abs(monto), // Mostrar valor positivo en el ticket
-        nombre_usuario,
-        nombre_caja,  // Pasar el nombre de la caja en lugar del número
-        motivo: motivo || 'Retiro de efectivo'
+        nombre_usuario: nombre_autorizador,  // Usuario que autoriza (admin/recaudador)
+        nombre_caja,
+        motivo: motivo || 'Retiro de efectivo',
+        nombre_cajero: nombre_cajero || 'Cajero'  // Nombre del cajero que realiza la operación
       });
     } catch (printError) {
       console.error('Error al imprimir comprobante:', printError);
@@ -577,5 +578,3 @@ exports.registrarRetiro = async (req, res) => {
     res.status(500).json({ success: false, message: 'Error interno del servidor' });
   }
 };
-
-

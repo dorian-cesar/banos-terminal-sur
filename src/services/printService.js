@@ -208,9 +208,9 @@ async function imprimirRetiro({
   fecha,
   hora,
   monto,
-  nombre_usuario,
-  nombre_caja,  // Cambiar de numero_caja a nombre_caja
-  motivo
+  nombre_usuario,  // Este es el usuario que autoriza (admin/recaudador)
+  nombre_caja,
+  nombre_cajero   // Nuevo parámetro: nombre del cajero que realiza la operación
 }) {
   try {
     if (!codigo || !monto) throw new Error("Campos requeridos faltantes");
@@ -232,9 +232,9 @@ async function imprimirRetiro({
       `Codigo: ${codigo}`,
       `Fecha:  ${fechaFormateada}`,
       `Hora:   ${hora}`,
-      `Caja:   ${nombre_caja}`,  // Usar nombre_caja en lugar de numero_caja
-      `Cajero: ${nombre_usuario}`,
-      `Recaudado por: ${nombre_usuario}`,
+      `Caja:   ${nombre_caja}`,
+      `Cajero: ${nombre_cajero}`,  // Usar nombre_cajero en lugar de nombre_usuario
+      `Autorizado por: ${nombre_usuario}`,  // Cambiar "Recaudado por" a "Autorizado por"
       "---------------------------------------------------",
       "MONTO RETIRADO:",
       `$${parseFloat(monto).toLocaleString('es-CL')}`,
