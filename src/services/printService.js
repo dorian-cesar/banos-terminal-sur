@@ -28,12 +28,10 @@ async function imprimirTicket({ Codigo, hora, fecha, tipo, valor }) {
     const encabezado = [
       "INMOBILIARIA E INVERSIONES", 
       "P Y R S.A.",
-      "GIRO: OBRAS MENORES",
       "EN CONSTRUCCIÓN",
       "RUT: 96.971.370-5",
       "SAN BORJA N1251", 
       "ESTACION CENTRAL",
-      "FONO 02-5603700",
       "Santiago - Chile",
       "---------------------------------------------",
     ];
