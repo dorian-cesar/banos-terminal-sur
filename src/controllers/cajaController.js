@@ -358,14 +358,18 @@ exports.cerrarCaja = async (req, res) => {
     const fecha_cierre = now.toISOString().split('T')[0];
     const hora_cierre = now.toTimeString().split(':').slice(0, 2).join(':');
 
-    // Obtener monto inicial
+    // Obtener monto inicial y datos de la caja
     const [[aperturaInfo]] = await pool.execute(
-      `SELECT monto_inicial, numero_caja FROM aperturas_cierres WHERE id = ?`,
+      `SELECT a.monto_inicial, a.numero_caja, c.nombre as nombre_caja 
+      FROM aperturas_cierres a
+      LEFT JOIN cajas c ON a.numero_caja = c.numero_caja
+      WHERE a.id = ?`,
       [id_aperturas_cierres]
     );
 
     const monto_inicial = aperturaInfo.monto_inicial || 0;
     const numero_caja = aperturaInfo.numero_caja;
+    const nombre_caja = aperturaInfo.nombre_caja || `Caja ${numero_caja}`;
 
     // Obtener nombre del usuario que cierra (admin/supervisor)
     const [[usuarioInfo]] = await pool.execute(
@@ -414,8 +418,9 @@ exports.cerrarCaja = async (req, res) => {
       fecha_cierre,
       hora_cierre,
       numero_caja,
-      nombre_usuario: nombre_usuario_cierre,  // Usuario que cierra (admin/supervisor)
-      nombre_cajero: nombre_cajero || 'Cajero'  // Nombre del cajero que trabajó en la caja
+      nombre_caja,
+      nombre_usuario: nombre_usuario_cierre,
+      nombre_cajero: nombre_cajero || 'Cajero'
     });
 
     res.json({

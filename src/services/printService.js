@@ -140,8 +140,9 @@ async function imprimirCierreCaja({
   fecha_cierre,
   hora_cierre,
   numero_caja,
+  nombre_caja, // ← Nuevo parámetro: nombre de la caja
   nombre_usuario,  // Usuario que cierra (admin/supervisor)
-  nombre_cajero    // ← Agregar nombre del cajero
+  nombre_cajero    // Nombre del cajero
 }) {
   try {
     const pdfDoc = await PDFDocument.create();
@@ -156,9 +157,9 @@ async function imprimirCierreCaja({
     const lines = [
       "CIERRE DE CAJA",
       "-------------------------",
-      `Caja         : N° ${numero_caja}`,
-      `Cajero       : ${nombre_cajero || 'Cajero'}`,  // ← Mostrar nombre del cajero
-      `Cerrado por  : ${nombre_usuario}`,  // Usuario que cierra (admin/supervisor)
+      `Caja         : ${nombre_caja}`, // ← Cambiado: usar nombre_caja en lugar de numero_caja
+      `Cajero       : ${nombre_cajero || 'Cajero'}`,
+      `Cerrado por  : ${nombre_usuario}`,
       `Fecha        : ${fecha_cierre}`,
       `Hora         : ${hora_cierre}`,
       "",
