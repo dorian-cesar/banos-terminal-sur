@@ -7,6 +7,7 @@ const { print } = require("pdf-to-printer");
 
 module.exports = {
   imprimirTicket,
+  reimprimirTicket,
   imprimirCierreCaja,
   imprimirRetiro  
 };
@@ -234,6 +235,167 @@ async function imprimirTicket({ Codigo, hora, fecha, tipo, valor }) {
     
   } catch (error) {
     console.error("🛑 Error en imprimirTicket:", error.message);
+    console.error("📋 Stack trace:", error.stack);
+  }
+}
+
+async function reimprimirTicket({ Codigo, hora, fecha, tipo, valor }) {
+  try {
+    console.log("🟢 Iniciando proceso de REIMPRESIÓN de ticket");
+    console.log("📋 Datos recibidos:", { Codigo, hora, fecha, tipo, valor });
+    
+    if (!Codigo || !tipo) throw new Error("Campos requeridos faltantes");
+
+    console.log("📄 Creando documento PDF para reimpresión...");
+    const pdfDoc = await PDFDocument.create();
+
+    // --- Datos base ---
+    const fechaObj = new Date(fecha);
+    const dia = String(fechaObj.getDate()).padStart(2, "0");
+    const mes = String(fechaObj.getMonth() + 1).padStart(2, "0");
+    const anio = String(fechaObj.getFullYear());
+    const fechaFormateada = `${dia}-${mes}-${anio}`;
+
+    // --- Secciones para REIMPRESIÓN (sin formato de boleta) ---
+    const encabezado = [
+      "REIMPRESIÓN",
+      "---------------------------------------------",
+    ];
+
+    const detalle = [
+      "---------------------------------------------",
+      `Fecha : ${fechaFormateada}`,
+      `Hora  : ${hora}`,
+      `Tipo  : ${tipo}`,
+      valor ? `Monto : $${valor}` : null,
+      "---------------------------------------------",
+    ].filter(Boolean);
+
+    const footer = ["COMPROBANTE DE REIMPRESIÓN", "Válido solo como comprobante"];
+
+    // --- ESPACIOS ---
+    const lineHeight = 15;
+    const topMargin = 10;
+    const bottomMargin = 10;
+    const qrHeight = 120;
+    const spaceBeforeQR = 0;
+    const spaceAfterQR = 5;
+
+    let altura =
+      topMargin +
+      encabezado.length * lineHeight +
+      lineHeight + // Para el código
+      spaceBeforeQR +
+      qrHeight +
+      spaceAfterQR +
+      (detalle.length + footer.length) * lineHeight +
+      bottomMargin;
+
+    const alturaMin = 380;
+    altura = Math.max(altura, alturaMin);
+    
+    console.log("📏 Altura calculada del PDF:", altura);
+
+    // --- Crear página ---
+    const page = pdfDoc.addPage([210, altura]);
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const fontSize = 11;
+
+    // --------------------------------------------------------------------------------- Inicio del comprobante
+    // Posición inicial
+    let y = altura - topMargin;
+
+    // --- Encabezado centrado ---
+    console.log("🖋️ Dibujando encabezado...");
+    encabezado.forEach((line) => {
+      const textWidth = font.widthOfTextAtSize(line, fontSize);
+      const centeredX = (210 - textWidth) / 2;
+      page.drawText(line, { x: centeredX, y, size: fontSize, font });
+      y -= lineHeight;
+    });
+
+    // --- Código de ticket encima del QR ---
+    const codigoText = `Código : ${Codigo}`;
+    const codigoWidth = font.widthOfTextAtSize(codigoText, fontSize);
+    const codigoX = (210 - codigoWidth) / 2;
+    page.drawText(codigoText, { x: codigoX, y, size: fontSize, font });
+    y -= lineHeight;
+
+    // --- QR Code ---
+    const qrWidth = 120;
+    const qrX = (210 - qrWidth) / 2;
+    const qrY = y;
+
+    console.log("🔳 Generando código QR...");
+    const qrDataURL = await QRCode.toDataURL(Codigo);
+    const qrImageBytes = Buffer.from(qrDataURL.split(",")[1], "base64");
+    const qrImage = await pdfDoc.embedPng(qrImageBytes);
+
+    console.log("🖋️ Dibujando código QR...");
+    page.drawImage(qrImage, {
+      x: qrX,
+      y: qrY - qrHeight,
+      width: qrWidth,
+      height: qrHeight,
+    });
+
+    // Posicionar el texto debajo del QR
+    y = qrY - qrHeight - spaceAfterQR;
+
+    // --- Detalle centrado ---
+    console.log("🖋️ Dibujando detalles...");
+    detalle.forEach((line) => {
+      const textWidth = font.widthOfTextAtSize(line, fontSize);
+      const centeredX = (210 - textWidth) / 2;
+      page.drawText(line, { x: centeredX, y, size: fontSize, font });
+      y -= lineHeight;
+    });
+
+    // --- Footer centrado ---
+    console.log("🖋️ Dibujando footer...");
+    footer.forEach((line) => {
+      const textWidth = font.widthOfTextAtSize(line, fontSize);
+      const centeredX = (210 - textWidth) / 2;
+      page.drawText(line, { x: centeredX, y, size: fontSize, font });
+      y -= lineHeight;
+    });
+    // --------------------------------------------------------------------------------- Fin del comprobante
+
+    // --- Guardar e imprimir ---
+    console.log("💾 Guardando PDF...");
+    const pdfBytes = await pdfDoc.save();
+    const filePath = path.join(os.tmpdir(), `reimpresion-${Date.now()}.pdf`);
+    fs.writeFileSync(filePath, pdfBytes);
+    
+    console.log("🖨️ Enviando a impresión...");
+    console.log("📋 Ruta del archivo:", filePath);
+    console.log("🖨️ Impresora:", "POS58");
+    
+    await print(filePath, { printer: "POS58" });
+    
+    console.log("✅ Reimpresión enviada correctamente");
+    console.log("🗑️ Eliminando archivo temporal...");
+    
+    fs.unlink(filePath, (err) => {
+      if (err) {
+        console.warn("⚠️ No se pudo eliminar archivo temporal:", err.message);
+      } else {
+        console.log("✅ Archivo temporal eliminado");
+      }
+    });
+    
+    // Mostrar resumen final
+    console.log("\n" + "=".repeat(60));
+    console.log("🎉 COMPROBANTE REIMPRESO EXITOSAMENTE");
+    console.log("=".repeat(60));
+    console.log(`🔢 Código: ${Codigo}`);
+    console.log(`💰 Monto: $${valor || 0}`);
+    console.log(`📋 Tipo: ${tipo}`);
+    console.log(`🕒 Fecha/hora: ${fechaFormateada} ${hora}`);
+    console.log("=".repeat(60));
+    
+  } catch (error) {
+    console.error("🛑 Error en reimprimirTicket:", error.message);
     console.error("📋 Stack trace:", error.stack);
   }
 }
