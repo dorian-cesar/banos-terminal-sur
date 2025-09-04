@@ -13,8 +13,58 @@ module.exports = {
 
 async function imprimirTicket({ Codigo, hora, fecha, tipo, valor }) {
   try {
+    console.log("🟢 Iniciando proceso de impresión de ticket");
+    console.log("📋 Datos recibidos:", { Codigo, hora, fecha, tipo, valor });
+    
     if (!Codigo || !tipo) throw new Error("Campos requeridos faltantes");
 
+    // --- Obtener número de boleta real desde la API ---
+    let numeroBoleta = "001"; // Valor por defecto
+    let apiResponse = null;
+    
+    try {
+      console.log("🌐 Intentando conectar con API de boletas...");
+      console.log("📤 Enviando payload:", { nombre: tipo, precio: valor || 0 });
+      
+      const response = await fetch('https://backend-banios.dev-wit.com/api/boletas/enviar', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nombre: tipo,
+          precio: valor || 0
+        })
+      });
+      
+      console.log("📥 Respuesta recibida. Status:", response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log("✅ Datos recibidos de API:", data);
+        apiResponse = data;
+        
+        // EXTRAER CORRECTAMENTE EL FOLIO DE LA RESPUESTA
+        numeroBoleta = data.folio || data.numeroBoleta || data.id || data.numero || "001";
+        console.log("🔢 Número de boleta asignado:", numeroBoleta);
+      } else {
+        console.warn("⚠️ No se pudo obtener número de boleta real, usando valor por defecto");
+        console.warn("📋 Detalles de error:", response.status, response.statusText);
+        
+        // Intentar obtener más detalles del error si es posible
+        try {
+          const errorData = await response.text();
+          console.warn("📋 Cuerpo de error:", errorData);
+        } catch (e) {
+          console.warn("📋 No se pudo obtener cuerpo de error");
+        }
+      }
+    } catch (apiError) {
+      console.warn("❌ Error al conectar con API de boletas:", apiError.message);
+      console.warn("📋 Stack trace:", apiError.stack);
+    }
+
+    console.log("📄 Creando documento PDF...");
     const pdfDoc = await PDFDocument.create();
 
     // --- Datos base ---
@@ -40,7 +90,7 @@ async function imprimirTicket({ Codigo, hora, fecha, tipo, valor }) {
 
     const detalle = [
       "---------------------------------------------",
-      `Nº boleta : 001`,
+      `Nº boleta : ${numeroBoleta}`, // Usamos el número real de boleta (folio)
       `Fecha : ${fechaFormateada}`,
       `Hora  : ${hora}`,
       `Tipo  : ${tipo}`,
@@ -70,6 +120,8 @@ async function imprimirTicket({ Codigo, hora, fecha, tipo, valor }) {
 
     const alturaMin = 380;
     altura = Math.max(altura, alturaMin);
+    
+    console.log("📏 Altura calculada del PDF:", altura);
 
     // --- Crear página ---
     const page = pdfDoc.addPage([210, altura]);
@@ -81,6 +133,7 @@ async function imprimirTicket({ Codigo, hora, fecha, tipo, valor }) {
     let y = altura - topMargin;
 
     // --- Encabezado centrado ---
+    console.log("🖋️ Dibujando encabezado...");
     encabezado.forEach((line) => {
       const textWidth = font.widthOfTextAtSize(line, fontSize);
       const centeredX = (210 - textWidth) / 2;
@@ -102,11 +155,13 @@ async function imprimirTicket({ Codigo, hora, fecha, tipo, valor }) {
     // CORRECCIÓN: El QR debe empezar JUSTO debajo del texto
     const qrY = y; // y ya está en la posición correcta (debajo del texto)
 
+    console.log("🔳 Generando código QR...");
     const qrDataURL = await QRCode.toDataURL(Codigo);
     const qrImageBytes = Buffer.from(qrDataURL.split(",")[1], "base64");
     const qrImage = await pdfDoc.embedPng(qrImageBytes);
 
     // DIBUJAR EL QR EN LA POSICIÓN CORRECTA
+    console.log("🖋️ Dibujando código QR...");
     page.drawImage(qrImage, {
       x: qrX,
       y: qrY - qrHeight, // El QR se dibuja EXTENDIÉNDOSE HACIA ARRIBA
@@ -118,6 +173,7 @@ async function imprimirTicket({ Codigo, hora, fecha, tipo, valor }) {
     y = qrY - qrHeight - spaceAfterQR;
 
     // --- Detalle centrado ---
+    console.log("🖋️ Dibujando detalles...");
     detalle.forEach((line) => {
       const textWidth = font.widthOfTextAtSize(line, fontSize);
       const centeredX = (210 - textWidth) / 2;
@@ -126,6 +182,7 @@ async function imprimirTicket({ Codigo, hora, fecha, tipo, valor }) {
     });
 
     // --- Footer centrado ---
+    console.log("🖋️ Dibujando footer...");
     footer.forEach((line) => {
       const textWidth = font.widthOfTextAtSize(line, fontSize);
       const centeredX = (210 - textWidth) / 2;
@@ -135,14 +192,49 @@ async function imprimirTicket({ Codigo, hora, fecha, tipo, valor }) {
     // --------------------------------------------------------------------------------- Aqui termina el ticket
 
     // --- Guardar e imprimir ---
+    console.log("💾 Guardando PDF...");
     const pdfBytes = await pdfDoc.save();
     const filePath = path.join(os.tmpdir(), `ticket-${Date.now()}.pdf`);
     fs.writeFileSync(filePath, pdfBytes);
-
+    
+    console.log("🖨️ Enviando a impresión...");
+    console.log("📋 Ruta del archivo:", filePath);
+    console.log("🖨️ Impresora:", "POS58");
+    
     await print(filePath, { printer: "POS58" });
-    fs.unlink(filePath, () => {});
+    
+    console.log("✅ Impresión enviada correctamente");
+    console.log("🗑️ Eliminando archivo temporal...");
+    
+    fs.unlink(filePath, (err) => {
+      if (err) {
+        console.warn("⚠️ No se pudo eliminar archivo temporal:", err.message);
+      } else {
+        console.log("✅ Archivo temporal eliminado");
+      }
+    });
+    
+    // Mostrar resumen final
+    console.log("\n" + "=".repeat(60));
+    console.log("🎉 TICKET IMPRESO EXITOSAMENTE");
+    console.log("=".repeat(60));
+    console.log(`🔢 Número de boleta (folio): ${numeroBoleta}`);
+    console.log(`💰 Monto: $${valor || 0}`);
+    console.log(`📋 Tipo: ${tipo}`);
+    console.log(`🕒 Fecha/hora: ${fechaFormateada} ${hora}`);
+    
+    if (apiResponse) {
+      console.log("🌐 API: Conexión exitosa");
+      console.log(`📋 Folio API: ${apiResponse.folio}`);
+      console.log(`📋 Mensaje: ${apiResponse.message}`);
+    } else {
+      console.log("⚠️ API: Se usó número por defecto");
+    }
+    console.log("=".repeat(60));
+    
   } catch (error) {
     console.error("🛑 Error en imprimirTicket:", error.message);
+    console.error("📋 Stack trace:", error.stack);
   }
 }
 
