@@ -100,21 +100,20 @@ async function imprimirTicket({ Codigo, hora, fecha, tipo, valor }) {
     const qrX = (210 - qrWidth) / 2;
     
     // CORRECCIÓN: El QR debe empezar JUSTO debajo del texto
-    const qrY = y; // y ya está en la posición correcta (debajo del texto)
+    const qrY = y - spaceBeforeQR; // y ya está en la posición correcta
 
     const qrDataURL = await QRCode.toDataURL(Codigo);
     const qrImageBytes = Buffer.from(qrDataURL.split(",")[1], "base64");
     const qrImage = await pdfDoc.embedPng(qrImageBytes);
 
-    // DIBUJAR EL QR EN LA POSICIÓN CORRECTA
     page.drawImage(qrImage, {
       x: qrX,
-      y: qrY - qrHeight, // El QR se dibuja EXTENDIÉNDOSE HACIA ARRIBA
+      y: qrY - qrHeight, // ← CORRECCIÓN CLAVE: El QR se dibuja HACIA ARRIBA
       width: qrWidth,
       height: qrHeight,
     });
 
-    // CORRECCIÓN CLAVE: Posicionar el texto debajo del QR correctamente
+    // Posicionar el texto debajo del QR
     y = qrY - qrHeight - spaceAfterQR;
 
     // --- Detalle centrado ---
