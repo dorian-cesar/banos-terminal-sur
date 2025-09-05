@@ -33,25 +33,7 @@ app.use('/api', require('./routes/auth'));
 // se redirige automáticamente al panel principal (home.html).
 // En caso contrario, se carga la vista de inicio de sesión (login.html).
 app.get('/', (req, res) => {
-  if (req.session.user) {
-    return res.sendFile(path.join(__dirname, 'views', 'home.html'));
-  }
-  res.sendFile(path.join(__dirname, 'views', 'login.html'));
-});
-
-
-// Ruta pública para acceder directamente a la vista de login:
-// No verifica sesión permite al usuario acceder manualmente al login
-// o si fue redirigido desde otra ruta protegida.
-app.get('/login.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'views', 'login.html'));
-});
-
-app.get('/caja.html', (req, res) => {
-  if (!req.session.user) {
-    return res.redirect('/');
-  }
-  res.sendFile(path.join(__dirname, 'views', 'caja.html'));
+  res.sendFile(path.join(__dirname, 'views', 'home.html'));
 });
 
 

@@ -2,11 +2,9 @@ require('express-async-errors');
 const cors = require('cors');
 const express = require('express');
 const bodyParser = require('body-parser');
-const logger = require('./utils/logger');
 const path = require('path');
 const { imprimirTicket } = require('./services/printService');
 const { reimprimirTicket } = require('./services/printService');
-
 
 const paymentController = require('./controllers/paymentController');
 const terminalController = require('./controllers/terminalController');
@@ -95,7 +93,7 @@ app.use(cajaRoutes);
 
 // Manejo de errores generales
 app.use((err, req, res, next) => {
-  logger.error('Error no manejado:', {
+  console.error('Error no manejado:', {
     message: err.message,
     stack: err.stack,
     url: req.originalUrl,
@@ -110,25 +108,17 @@ app.use((err, req, res, next) => {
 
 // Captura errores fatales para evitar que caiga el servidor
 process.on('uncaughtException', (err) => {
-  logger.error('❌ uncaughtException:', err);
+  console.error('❌ uncaughtException:', err);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  logger.error('❌ unhandledRejection:', reason);
+  console.error('❌ unhandledRejection:', reason);
 });
 
 app.post('/api/apagar', (req, res) => {
   const { exec } = require('child_process');
   exec('shutdown /s /t 0', (err) => {
     if (err) return res.status(500).json({ success: false, error: 'No se pudo apagar' });
-    res.json({ success: true });
-  });
-});
-
-app.post('/api/salir-kiosko', (req, res) => {
-  const { exec } = require('child_process');
-  exec('taskkill /IM chrome.exe /F', (err) => {
-    if (err) return res.status(500).json({ success: false, error: 'No se pudo cerrar Chrome' });
     res.json({ success: true });
   });
 });
