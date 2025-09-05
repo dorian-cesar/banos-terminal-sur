@@ -22,6 +22,7 @@ async function imprimirTicket({ Codigo, hora, fecha, tipo, valor }) {
     // --- Obtener número de boleta real desde la API ---
     let numeroBoleta = "001"; // Valor por defecto
     let apiResponse = null;
+    let apiError = null;
     
     try {
       console.log("🌐 Intentando conectar con API de boletas...");
@@ -40,31 +41,31 @@ async function imprimirTicket({ Codigo, hora, fecha, tipo, valor }) {
       
       console.log("📥 Respuesta recibida. Status:", response.status);
       
+      const responseData = await response.json();
+      console.log("📋 Respuesta completa de API:", responseData);
+      
+      // Manejar tanto respuesta exitosa como error de la API
       if (response.ok) {
-        const data = await response.json();
-        console.log("✅ Datos recibidos de API:", data);
-        apiResponse = data;
-        
+        apiResponse = responseData;
         // EXTRAER CORRECTAMENTE EL FOLIO DE LA RESPUESTA
-        numeroBoleta = data.folio || data.numeroBoleta || data.id || data.numero || "001";
-        console.log("🔢 Número de boleta asignado:", numeroBoleta);
+        numeroBoleta = responseData.folio || responseData.numeroBoleta || responseData.id || responseData.numero || "001";
+        console.log("✅ Datos recibidos de API. Número de boleta asignado:", numeroBoleta);
       } else {
-        console.warn("⚠️ No se pudo obtener número de boleta real, usando valor por defecto");
-        console.warn("📋 Detalles de error:", response.status, response.statusText);
-        
-        // Intentar obtener más detalles del error si es posible
-        try {
-          const errorData = await response.text();
-          console.warn("📋 Cuerpo de error:", errorData);
-        } catch (e) {
-          console.warn("📋 No se pudo obtener cuerpo de error");
-        }
+        // La API devolvió un error pero con un folio válido
+        apiError = responseData.error || "Error desconocido de API";
+        // Aún así intentamos obtener el folio si está presente
+        numeroBoleta = responseData.folio || responseData.numeroBoleta || responseData.id || responseData.numero || "001";
+        console.warn("⚠️ API devolvió error pero con folio:", apiError, "| Folio:", numeroBoleta);
       }
     } catch (apiError) {
       console.warn("❌ Error al conectar con API de boletas:", apiError.message);
       console.warn("📋 Stack trace:", apiError.stack);
+      // Mantenemos el valor por defecto para numeroBoleta
     }
 
+    console.log("🔢 Número de boleta final:", numeroBoleta);
+    
+    // Resto del código para generar el PDF (sin cambios)
     console.log("📄 Creando documento PDF...");
     const pdfDoc = await PDFDocument.create();
 
@@ -228,6 +229,10 @@ async function imprimirTicket({ Codigo, hora, fecha, tipo, valor }) {
       console.log("🌐 API: Conexión exitosa");
       console.log(`📋 Folio API: ${apiResponse.folio}`);
       console.log(`📋 Mensaje: ${apiResponse.message}`);
+    } else if (apiError) {
+      console.log("⚠️ API: Error pero folio obtenido");
+      console.log(`📋 Error: ${apiError}`);
+      console.log(`📋 Folio: ${numeroBoleta}`);
     } else {
       console.log("⚠️ API: Se usó número por defecto");
     }
@@ -236,6 +241,7 @@ async function imprimirTicket({ Codigo, hora, fecha, tipo, valor }) {
   } catch (error) {
     console.error("🛑 Error en imprimirTicket:", error.message);
     console.error("📋 Stack trace:", error.stack);
+    // Incluso en caso de error general, podríamos intentar imprimir un ticket básico
   }
 }
 
