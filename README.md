@@ -30,4 +30,16 @@ Nombra el acceso directo como "Arranque PM2".
 
 
 
-"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --app=http://localhost:8080 --touch-events=enabled
+Para borrar en db registros DE CAJA TEST:
+
+    USE terminales;
+
+    -- Luego ejecutar las eliminaciones
+    DELETE FROM movimientos 
+    WHERE id_aperturas_cierres IN (
+        SELECT id FROM aperturas_cierres WHERE numero_caja = 33
+    );
+
+    DELETE FROM aperturas_cierres WHERE numero_caja = 33;
+
+    DELETE FROM cajas WHERE numero_caja = 33;

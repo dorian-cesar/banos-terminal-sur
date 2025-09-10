@@ -478,7 +478,7 @@ exports.listarCajasDelDia = async (req, res) => {
 
 exports.registrarRetiro = async (req, res) => {
   try {
-    const { monto, id_usuario, motivo, nombre_cajero } = req.body; // Agregar nombre_cajero
+    const { monto, id_usuario, motivo, nombre_cajero } = req.body;
     const numero_caja = parseInt(process.env.NUMERO_CAJA);
 
     // Validaciones
@@ -548,27 +548,23 @@ exports.registrarRetiro = async (req, res) => {
       ]
     );
 
-    // Imprimir comprobante de retiro
-    try {
-      await imprimirRetiro({
-        codigo,
-        fecha,
-        hora,
-        monto: Math.abs(monto), // Mostrar valor positivo en el ticket
-        nombre_usuario: nombre_autorizador,  // Usuario que autoriza (admin/recaudador)
-        nombre_caja,
-        motivo: motivo || 'Retiro de efectivo',
-        nombre_cajero: nombre_cajero || 'Cajero'  // Nombre del cajero que realiza la operación
-      });
-    } catch (printError) {
-      console.error('Error al imprimir comprobante:', printError);
-      // No fallar la operación si hay error de impresión, solo registrar
-    }
+    // Preparar datos para impresión (en lugar de imprimir directamente)
+    const datosImpresion = {
+      codigo,
+      fecha,
+      hora,
+      monto: Math.abs(monto), // Mostrar valor positivo en el ticket
+      nombre_usuario: nombre_autorizador,  // Usuario que autoriza (admin/recaudador)
+      nombre_caja,
+      motivo: motivo || 'Retiro de efectivo',
+      nombre_cajero: nombre_cajero || 'Cajero'  // Nombre del cajero que realiza la operación
+    };
 
     res.json({ 
       success: true, 
       message: 'Retiro registrado exitosamente',
       insertId: result.insertId,
+      datosImpresion: datosImpresion, // Devolvemos los datos para impresión
       retiro: {
         id: result.insertId,
         codigo,
@@ -583,5 +579,28 @@ exports.registrarRetiro = async (req, res) => {
   } catch (error) {
     console.error('Error al registrar retiro:', error);
     res.status(500).json({ success: false, message: 'Error interno del servidor' });
+  }
+};
+
+// Nueva función para imprimir comprobante de retiro (se llamará desde el frontend)
+exports.imprimirComprobanteRetiro = async (req, res) => {
+  try {
+    const { codigo, fecha, hora, monto, nombre_usuario, nombre_caja, motivo, nombre_cajero } = req.body;
+    
+    await imprimirRetiro({
+      codigo,
+      fecha,
+      hora,
+      monto,
+      nombre_usuario,
+      nombre_caja,
+      motivo,
+      nombre_cajero
+    });
+    
+    res.json({ success: true, message: 'Comprobante impreso correctamente' });
+  } catch (error) {
+    console.error('Error al imprimir comprobante:', error);
+    res.status(500).json({ success: false, message: 'Error al imprimir comprobante' });
   }
 };
