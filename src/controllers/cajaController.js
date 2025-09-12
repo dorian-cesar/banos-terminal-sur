@@ -583,24 +583,130 @@ exports.registrarRetiro = async (req, res) => {
 };
 
 // Nueva función para imprimir comprobante de retiro (se llamará desde el frontend)
+const { PDFDocument, StandardFonts } = require("pdf-lib");
+const imprimirPDF = require('../services/printService');
+
 exports.imprimirComprobanteRetiro = async (req, res) => {
   try {
     const { codigo, fecha, hora, monto, nombre_usuario, nombre_caja, motivo, nombre_cajero } = req.body;
     
-    await imprimirRetiro({
-      codigo,
-      fecha,
-      hora,
-      monto,
-      nombre_usuario,
-      nombre_caja,
-      motivo,
-      nombre_cajero
+    // Validaciones básicas
+    if (!codigo || !monto) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Código y monto son requeridos' 
+      });
+    }
+
+    // 1. Generar el PDF
+    const pdfDoc = await PDFDocument.create();
+
+    // --- Datos base ---
+    const fechaObj = new Date(fecha);
+    const dia = String(fechaObj.getDate()).padStart(2, "0");
+    const mes = String(fechaObj.getMonth() + 1).padStart(2, "0");
+    const anio = String(fechaObj.getFullYear());
+    const fechaFormateada = `${dia}-${mes}-${anio}`;
+
+    // --- Secciones simples ---
+    const detalle = [
+      "COMPROBANTE DE RETIRO",
+      motivo ? `MOTIVO: ${motivo}` : "DE EFECTIVO",
+      "---------------------------------------------------",
+      `Codigo: ${codigo}`,
+      `Fecha:  ${fechaFormateada}`,
+      `Hora:   ${hora}`,
+      `Caja:   ${nombre_caja}`,
+      `Cajero: ${nombre_cajero}`,
+      `Autorizado por: ${nombre_usuario}`,
+      "---------------------------------------------------",
+      "MONTO RETIRADO:",
+      `$${parseFloat(monto).toLocaleString('es-CL')}`,
+      "---------------------------------------------------",
+    ].filter(Boolean);
+
+    const footer = [
+      " ",
+      "FIRMA AUTORIZADA:",
+      " ",
+      " ",
+      "_________________________",
+      " ",
+      " ",
+      "."
+    ];
+
+    // --- Cálculo de altura ---
+    const lineHeight = 15;
+    const topMargin = 30;
+    const bottomMargin = 30;
+    const espacioFirma = 40;
+
+    let altura = topMargin + 
+                (detalle.length * lineHeight) + 
+                espacioFirma + 
+                (footer.length * lineHeight) + 
+                bottomMargin;
+
+    // --- Crear página ---
+    const page = pdfDoc.addPage([210, altura]);
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+    // Posición inicial
+    let y = altura - topMargin;
+
+    // --- Detalles ---
+    detalle.forEach((line) => {
+      const isTitle = line === "COMPROBANTE DE RETIRO" || line.startsWith("MOTIVO:");
+      const isMonto = line.includes("MONTO RETIRADO") || line.includes("$");
+      const isSeparator = line.includes("---");
+      
+      const currentFont = isTitle || isMonto ? boldFont : font;
+      const currentSize = isMonto ? 13 : isTitle ? 13 : 12;
+      
+      if (isSeparator) {
+        page.drawText(line, { x: 15, y, size: 12, font });
+      } else {
+        const textWidth = currentFont.widthOfTextAtSize(line, currentSize);
+        const centeredX = (210 - textWidth) / 2;
+        page.drawText(line, { x: centeredX, y, size: currentSize, font: currentFont });
+      }
+      y -= lineHeight;
+    });
+
+    // Espacio para firma
+    y -= 20;
+
+    // --- Footer ---
+    footer.forEach((line) => {
+      const isFirma = line === "FIRMA AUTORIZADA:";
+      const currentFont = isFirma ? boldFont : font;
+      const currentSize = isFirma ? 13 : 11;
+      
+      const textWidth = currentFont.widthOfTextAtSize(line, currentSize);
+      const centeredX = (210 - textWidth) / 2;
+      page.drawText(line, { x: centeredX, y, size: currentSize, font: currentFont });
+      y -= lineHeight;
+    });
+
+    // 2. Obtener el PDF como buffer y convertirlo a base64
+    const pdfBytes = await pdfDoc.save();
+
+    // 3. Usar el nuevo servicio simplificado para imprimir
+    await imprimirPDF({
+      pdfData: Buffer.from(pdfBytes), // 👈 aquí va directo como Buffer
+      printer: "POS58",
+      filename: `retiro-${codigo}-${Date.now()}.pdf`
     });
     
     res.json({ success: true, message: 'Comprobante impreso correctamente' });
   } catch (error) {
     console.error('Error al imprimir comprobante:', error);
-    res.status(500).json({ success: false, message: 'Error al imprimir comprobante' });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error al imprimir comprobante',
+      error: error.message 
+    });
   }
 };

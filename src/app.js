@@ -6,6 +6,8 @@ const path = require('path');
 const { imprimirTicket } = require('./services/printService');
 const { reimprimirTicket } = require('./services/printService');
 
+const { imprimir } = require("./controllers/imprimir");
+
 const paymentController = require('./controllers/paymentController');
 const terminalController = require('./controllers/terminalController');
 const transbankService = require('./services/transbankService');
@@ -31,6 +33,9 @@ app.use(bodyParser.json({
   }
 }));
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// nueva ruta de impresion
+app.post("/api/imprimir", imprimir);
 
 // Ruta de impresion
 app.post('/api/print', async (req, res) => {

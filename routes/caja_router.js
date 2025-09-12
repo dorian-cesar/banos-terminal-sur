@@ -12,9 +12,6 @@ router.get('/api/numero-caja', (req, res) => {
     }
 });
 
-// Ruta para registrar retiro
-router.post('/api/caja/retiro', cajaController.registrarRetiro);
-
 // Ruta para imprimir comprobante de retiro
 router.post('/api/caja/imprimir-retiro', cajaController.imprimirComprobanteRetiro);
 
